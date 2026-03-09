@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Video {
+  id              Int       @id @default(autoincrement())
+  title           String
+  description     String?
+  sourceUrl       String
+  durationSeconds Float?
+  createdAt       DateTime  @default(now())
+
+  comments Comment[]
+}
+
+model Comment {
+  id           Int      @id @default(autoincrement())
+  videoId      Int
+  video        Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  startSeconds Float
+  endSeconds   Float
+  text         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
