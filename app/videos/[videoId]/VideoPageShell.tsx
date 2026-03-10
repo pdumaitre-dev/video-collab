@@ -16,21 +16,29 @@ export type CommentData = {
 };
 
 export interface VideoForClient {
-  id: number;
+  id?: number;
   title: string;
-  description: string | null;
+  description?: string | null;
   sourceUrl: string;
-  durationSeconds: number | null;
+  durationSeconds?: number | null;
 }
+
+export type PersistCommentFn = (
+  range: { startSeconds: number; endSeconds: number },
+  text: string
+) => Promise<CommentData>;
 
 interface VideoPageShellProps {
   video: VideoForClient;
   initialComments: CommentData[];
+  /** When provided, used instead of API for persisting comments (e.g. for file-based videos) */
+  persistComment?: PersistCommentFn;
 }
 
 export default function VideoPageShell({
   video,
-  initialComments
+  initialComments,
+  persistComment
 }: VideoPageShellProps) {
   const [comments, setComments] = React.useState<CommentData[]>(initialComments);
   const [currentTime, setCurrentTime] = React.useState(0);
@@ -71,6 +79,26 @@ export default function VideoPageShell({
 
   const handleNewComment = async (text: string) => {
     if (!selectedRange) return;
+
+    if (persistComment) {
+      const created = await persistComment(
+        {
+          startSeconds: selectedRange.startSeconds,
+          endSeconds: selectedRange.endSeconds
+        },
+        text
+      );
+      setComments((prev) =>
+        [...prev, created].sort((a, b) => a.startSeconds - b.startSeconds)
+      );
+      setSelectedRange(null);
+      return;
+    }
+
+    if (video.id == null) {
+      console.error("No persistComment and no video.id");
+      return;
+    }
 
     const res = await fetch(`/api/videos/${video.id}/comments`, {
       method: "POST",
