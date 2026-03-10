@@ -4,7 +4,7 @@ import * as React from "react";
 
 interface VideoPlayerProps {
   src: string;
-  videoRef?: React.RefObject<HTMLVideoElement | null>;
+  videoRef?: React.RefObject<HTMLVideoElement>;
   onTimeUpdate?: (timeSeconds: number) => void;
   onDurationChange?: (durationSeconds: number) => void;
 }
@@ -15,7 +15,7 @@ export default function VideoPlayer({
   onTimeUpdate,
   onDurationChange
 }: VideoPlayerProps) {
-  const innerRef = React.useRef<HTMLVideoElement | null>(null);
+  const innerRef = React.useRef<HTMLVideoElement>(null);
   const ref = videoRef ?? innerRef;
 
   return (
