@@ -38,9 +38,14 @@ export default function FileVideoPageShell({
   sourceUrl,
   title
 }: FileVideoPageShellProps) {
-  const [initialComments] = React.useState<CommentData[]>(() =>
-    loadComments(sourceUrl)
-  );
+  // Start with [] so server and client match on first render (avoid hydration mismatch).
+  // Load from localStorage only after mount.
+  const [initialComments, setInitialComments] =
+    React.useState<CommentData[]>(() => []);
+
+  React.useEffect(() => {
+    setInitialComments(loadComments(sourceUrl));
+  }, [sourceUrl]);
 
   const persistComment: PersistCommentFn = React.useCallback(
     async (range, text) => {

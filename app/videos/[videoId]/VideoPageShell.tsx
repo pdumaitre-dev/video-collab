@@ -41,6 +41,14 @@ export default function VideoPageShell({
   persistComment
 }: VideoPageShellProps) {
   const [comments, setComments] = React.useState<CommentData[]>(initialComments);
+
+  // Sync when parent loads comments after mount (e.g. FileVideoPageShell loading from localStorage)
+  React.useEffect(() => {
+    if (initialComments.length > 0) {
+      setComments(initialComments);
+    }
+  }, [initialComments]);
+
   const [currentTime, setCurrentTime] = React.useState(0);
   const [duration, setDuration] = React.useState<number>(
     video.durationSeconds ?? 0
