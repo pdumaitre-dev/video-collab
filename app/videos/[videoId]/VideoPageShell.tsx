@@ -50,6 +50,7 @@ export default function VideoPageShell({
   }, [initialComments]);
 
   const [currentTime, setCurrentTime] = React.useState(0);
+  const [isPlaying, setIsPlaying] = React.useState(false);
   const [duration, setDuration] = React.useState<number>(
     video.durationSeconds ?? 0
   );
@@ -83,6 +84,22 @@ export default function VideoPageShell({
       videoRef.current.currentTime = time;
     }
     setCurrentTime(time);
+  };
+
+  const handleTogglePlayback = async () => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    if (videoElement.paused) {
+      try {
+        await videoElement.play();
+      } catch (error) {
+        console.error("Failed to start playback", error);
+      }
+      return;
+    }
+
+    videoElement.pause();
   };
 
   const handleNewComment = async (text: string) => {
@@ -161,7 +178,44 @@ export default function VideoPageShell({
             videoRef={videoRef}
             onTimeUpdate={setCurrentTime}
             onDurationChange={setDuration}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => setIsPlaying(false)}
           />
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={handleTogglePlayback}
+              aria-label={isPlaying ? "Pause video" : "Play video"}
+              className="inline-flex h-9 w-9 min-h-9 min-w-9 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-100 transition-colors hover:border-slate-500 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              style={{ minWidth: 36, minHeight: 36 }}
+            >
+              {isPlaying ? (
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="block h-5 w-5"
+                  fill="currentColor"
+                  width={20}
+                  height={20}
+                >
+                  <rect x="6" y="5" width="4" height="14" rx="1" />
+                  <rect x="14" y="5" width="4" height="14" rx="1" />
+                </svg>
+              ) : (
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="block h-5 w-5"
+                  fill="currentColor"
+                  width={20}
+                  height={20}
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              )}
+            </button>
+          </div>
           <Timeline
             durationSeconds={duration}
             currentTime={currentTime}

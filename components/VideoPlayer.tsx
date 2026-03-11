@@ -7,13 +7,19 @@ interface VideoPlayerProps {
   videoRef?: React.RefObject<HTMLVideoElement>;
   onTimeUpdate?: (timeSeconds: number) => void;
   onDurationChange?: (durationSeconds: number) => void;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onEnded?: () => void;
 }
 
 export default function VideoPlayer({
   src,
   videoRef,
   onTimeUpdate,
-  onDurationChange
+  onDurationChange,
+  onPlay,
+  onPause,
+  onEnded
 }: VideoPlayerProps) {
   const innerRef = React.useRef<HTMLVideoElement>(null);
   const ref = videoRef ?? innerRef;
@@ -23,7 +29,6 @@ export default function VideoPlayer({
       <video
         ref={ref}
         src={src}
-        controls
         className="h-auto w-full"
         onLoadedMetadata={(e) => {
           const duration = e.currentTarget.duration;
@@ -36,6 +41,9 @@ export default function VideoPlayer({
             onTimeUpdate(e.currentTarget.currentTime);
           }
         }}
+        onPlay={onPlay}
+        onPause={onPause}
+        onEnded={onEnded}
       />
     </div>
   );
