@@ -13,7 +13,12 @@ interface TimeBarProps {
   currentTime: number;
   comments?: CommentRange[];
   onSeek: (timeSeconds: number) => void;
-  onRangeSelected: (startSeconds: number, endSeconds: number) => void;
+  /** Called with normalized range (start <= end) and the position where the drag ended */
+  onRangeSelected: (
+    rangeStartSeconds: number,
+    rangeEndSeconds: number,
+    dragEndSeconds: number
+  ) => void;
 }
 
 function formatTime(totalSeconds: number): string {
@@ -33,10 +38,10 @@ export default function TimeBar({
   onRangeSelected
 }: TimeBarProps) {
   const barRef = React.useRef<HTMLDivElement | null>(null);
-  const dragStartRef = React.useRef(0);
+  const dragStartSecondsRef = React.useRef(0);
   const [selection, setSelection] = React.useState<{
-    start: number;
-    end: number;
+    dragStartSeconds: number;
+    dragEndSeconds: number;
   } | null>(null);
 
   const toSeconds = React.useCallback(
@@ -58,30 +63,34 @@ export default function TimeBar({
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (durationSeconds <= 0) return;
     e.preventDefault();
-    const startSeconds = toSeconds(e.clientX);
-    dragStartRef.current = startSeconds;
-    setSelection({ start: startSeconds, end: startSeconds });
+    const dragStartSeconds = toSeconds(e.clientX);
+    dragStartSecondsRef.current = dragStartSeconds;
+    setSelection({ dragStartSeconds, dragEndSeconds: dragStartSeconds });
 
     const onMove = (moveEvent: MouseEvent) => {
-      const endSeconds = toSeconds(moveEvent.clientX);
+      const dragEndSeconds = toSeconds(moveEvent.clientX);
       setSelection({
-        start: dragStartRef.current,
-        end: endSeconds
+        dragStartSeconds: dragStartSecondsRef.current,
+        dragEndSeconds
       });
+      onSeek(dragEndSeconds);
     };
 
     const onUp = (upEvent: MouseEvent) => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
-      const endSeconds = toSeconds(upEvent.clientX);
-      const start = Math.max(0, Math.min(dragStartRef.current, endSeconds));
-      const end = Math.min(
+      const dragEndSeconds = toSeconds(upEvent.clientX);
+      const rangeStartSeconds = Math.max(
+        0,
+        Math.min(dragStartSecondsRef.current, dragEndSeconds)
+      );
+      const rangeEndSeconds = Math.min(
         durationSeconds,
-        Math.max(dragStartRef.current, endSeconds)
+        Math.max(dragStartSecondsRef.current, dragEndSeconds)
       );
       setSelection(null);
-      if (end - start >= 0.1) {
-        onRangeSelected(start, end);
+      if (rangeEndSeconds - rangeStartSeconds >= 0.1) {
+        onRangeSelected(rangeStartSeconds, rangeEndSeconds, dragEndSeconds);
       }
     };
 
@@ -94,14 +103,17 @@ export default function TimeBar({
   const selectionStyle =
     selection && durationSeconds > 0
       ? (() => {
-          const start = Math.max(0, Math.min(selection.start, selection.end));
-          const end = Math.min(
+          const rangeStartSeconds = Math.max(
+            0,
+            Math.min(selection.dragStartSeconds, selection.dragEndSeconds)
+          );
+          const rangeEndSeconds = Math.min(
             durationSeconds,
-            Math.max(selection.start, selection.end)
+            Math.max(selection.dragStartSeconds, selection.dragEndSeconds)
           );
           return {
-            left: `${(start / durationSeconds) * 100}%`,
-            width: `${((end - start) / durationSeconds) * 100}%`
+            left: `${(rangeStartSeconds / durationSeconds) * 100}%`,
+            width: `${((rangeEndSeconds - rangeStartSeconds) / durationSeconds) * 100}%`
           };
         })()
       : null;
@@ -216,7 +228,8 @@ export default function TimeBar({
             color: "#38bdf8"
           }}
         >
-          Selected: {formatTime(selection.start)} – {formatTime(selection.end)}
+          Selected: {formatTime(Math.min(selection.dragStartSeconds, selection.dragEndSeconds))} –{" "}
+          {formatTime(Math.max(selection.dragStartSeconds, selection.dragEndSeconds))}
         </p>
       )}
       <p className="text-xs text-slate-500">
