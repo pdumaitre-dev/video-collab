@@ -224,9 +224,13 @@ export default function VideoPageShell({
               currentTime={currentTime}
               comments={comments}
               onSeek={handleSeek}
-              onRangeSelected={(startSeconds, endSeconds) =>
-                setSelectedRange({ startSeconds, endSeconds })
-              }
+              onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
+                setSelectedRange({
+                  startSeconds: rangeStartSeconds,
+                  endSeconds: rangeEndSeconds
+                });
+                handleSeek(dragEndSeconds);
+              }}
             />
           </div>
           <CommentForm
