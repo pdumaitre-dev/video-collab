@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import VideoPlayer from "@/components/VideoPlayer";
-import Timeline from "@/components/Timeline";
 import TimeBar from "@/components/TimeBar";
 import CommentList from "@/components/CommentList";
 import CommentForm from "@/components/CommentForm";
@@ -216,15 +215,6 @@ export default function VideoPageShell({
               )}
             </button>
           </div>
-          <Timeline
-            durationSeconds={duration}
-            currentTime={currentTime}
-            comments={comments}
-            onSeek={handleSeek}
-            onRangeSelected={(startSeconds, endSeconds) =>
-              setSelectedRange({ startSeconds, endSeconds })
-            }
-          />
           <div className="space-y-1">
             <p className="text-[11px] font-medium text-slate-400">
               Time bar (seek & select range)

@@ -24,7 +24,7 @@ export default function CommentList({
   if (comments.length === 0) {
     return (
       <p className="mt-2 text-xs text-slate-500">
-        No comments yet. Select a time range on the timeline to add one.
+        No comments yet. Select a time range on the time bar to add one.
       </p>
     );
   }

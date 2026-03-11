@@ -48,7 +48,7 @@ export default function CommentForm({
           </span>
         ) : (
           <span className="italic text-slate-500">
-            Select a range on the timeline
+            Select a range on the time bar
           </span>
         )}
       </div>

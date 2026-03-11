@@ -66,7 +66,7 @@ flowchart LR
     - Connects user interactions to video playback by:
       - Passing `onTimeUpdate` and `onDurationChange` to `VideoPlayer`.
       - Implementing `handleSeek` to control playback time via `videoRef.current.currentTime`.
-      - Wiring `Timeline` and `TimeBar` callbacks (`onSeek`, `onRangeSelected`) to seek and select time ranges.
+      - Wiring `TimeBar` callbacks (`onSeek`, `onRangeSelected`) to seek and select time ranges.
     - Handles comment creation via `CommentForm`, posting to `/api/videos/[videoId]/comments`.
 
 - **Core UI components**
@@ -74,8 +74,8 @@ flowchart LR
     - Thin wrapper around a `<video>` element.
     - Accepts a `videoRef` so parent components can control playback programmatically.
     - Emits `onTimeUpdate` and `onDurationChange` callbacks to keep UI state in sync with playback.
-  - `components/Timeline.tsx` and `components/TimeBar.tsx`
-    - Visualize the video duration, current time, and comment ranges.
+  - `components/TimeBar.tsx`
+    - Visualizes the video duration, current time, and comment ranges.
     - Allow users to seek to different points and select time ranges for annotations.
   - `components/CommentForm.tsx` and `components/CommentList.tsx`
     - `CommentForm` captures comment text bound to a selected time range.
@@ -115,7 +115,7 @@ The data model is defined in `prisma/schema.prisma` and centers on two entities:
     - Belongs to a single `Video` (`videoId`).
     - Uses `onDelete: Cascade` so comments are automatically removed when their parent video is deleted.
 
-These fields support time-based annotation by allowing each comment to be tied to a precise interval within the video. UI components such as `Timeline`, `TimeBar`, and `CommentList` use `startSeconds` and `endSeconds` to render and navigate between annotations.
+These fields support time-based annotation by allowing each comment to be tied to a precise interval within the video. UI components such as `TimeBar` and `CommentList` use `startSeconds` and `endSeconds` to render and navigate between annotations.
 
 ### Runtime boundaries and responsibilities
 
