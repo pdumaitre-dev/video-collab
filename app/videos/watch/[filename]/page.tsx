@@ -30,7 +30,11 @@ export default function WatchVideoPage({ params }: PageProps) {
       >
         ← Back to videos
       </Link>
-      <FileVideoPageShell sourceUrl={sourceUrl} title={filename} />
+      <FileVideoPageShell
+        sourceUrl={sourceUrl}
+        title={filename}
+        pathname={`videos/${filename}`}
+      />
     </div>
   );
 }

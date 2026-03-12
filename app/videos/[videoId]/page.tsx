@@ -47,6 +47,7 @@ export default async function VideoPage({ params }: PageProps) {
           <FileVideoPageShell
             sourceUrl={sourceUrl}
             title={blob.filename}
+            pathname={blob.pathname}
           />
         </div>
       );

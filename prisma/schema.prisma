@@ -29,3 +29,15 @@ model Comment {
   updatedAt    DateTime @updatedAt
 }
 
+model Comment_blob {
+  id           Int      @id @default(autoincrement())
+  pathname     String   // Blob pathname, e.g. "videos/sample.mp4"
+  startSeconds Float
+  endSeconds   Float
+  text         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([pathname])
+}
+
