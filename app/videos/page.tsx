@@ -16,7 +16,15 @@ export default async function VideosPickerPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Pick a video</h2>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold">Pick a video</h2>
+        <Link
+          href="/videos/upload"
+          className="text-sm text-slate-400 hover:text-slate-200"
+        >
+          Upload a video →
+        </Link>
+      </div>
       {videos.length === 0 ? (
         <p className="text-sm text-slate-400">
           No videos found in Vercel Blob storage. Upload .mp4, .mov, or .webm
