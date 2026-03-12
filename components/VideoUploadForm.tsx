@@ -1,17 +1,26 @@
 "use client";
 
 import * as React from "react";
-
-const ALLOWED_EXTENSIONS = [".mp4", ".mov", ".webm"];
-const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024;
+import Link from "next/link";
+import {
+  formatBytes,
+  getAllowedVideoExtensions,
+  getBaseFilename,
+  getMaxVideoFileSizeBytes,
+  validateVideoFile
+} from "@/lib/video-upload";
 
 type ValidationState =
   | { type: "idle" }
   | { type: "error"; message: string }
-  | { type: "success"; message: string };
+  | { type: "success"; message: string; pathname: string };
+
+const ALLOWED_EXTENSIONS = getAllowedVideoExtensions();
+const MAX_FILE_SIZE_BYTES = getMaxVideoFileSizeBytes();
 
 export default function VideoUploadForm() {
   const [file, setFile] = React.useState<File | null>(null);
+  const [submitting, setSubmitting] = React.useState(false);
   const [validation, setValidation] = React.useState<ValidationState>({
     type: "idle"
   });
@@ -27,7 +36,7 @@ export default function VideoUploadForm() {
     setValidation({ type: "idle" });
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!file) {
@@ -44,10 +53,42 @@ export default function VideoUploadForm() {
       return;
     }
 
-    setValidation({
-      type: "success",
-      message: "Validation passed. The actual upload will be added in step 2."
-    });
+    try {
+      setSubmitting(true);
+
+      const formData = new FormData();
+      formData.set("file", file);
+
+      const response = await fetch("/api/blob/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      const payload = (await response.json()) as
+        | { error?: string; pathname?: string }
+        | undefined;
+
+      if (!response.ok || !payload?.pathname) {
+        setValidation({
+          type: "error",
+          message: payload?.error ?? "Upload failed."
+        });
+        return;
+      }
+
+      setValidation({
+        type: "success",
+        pathname: payload.pathname,
+        message: "Upload complete. The video is now stored in Blob storage."
+      });
+    } catch {
+      setValidation({
+        type: "error",
+        message: "Upload failed. Please try again."
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -65,6 +106,7 @@ export default function VideoUploadForm() {
           type="file"
           accept={ALLOWED_EXTENSIONS.join(",")}
           onChange={handleFileChange}
+          disabled={submitting}
           className="block w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 file:mr-3 file:rounded-md file:border-0 file:bg-sky-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-950 hover:file:bg-sky-400"
         />
         <p className="text-xs text-slate-400">
@@ -93,26 +135,37 @@ export default function VideoUploadForm() {
       </div>
 
       {validation.type !== "idle" && (
-        <p
-          className={`rounded-md border px-3 py-2 text-sm ${
+        <div
+          className={`space-y-2 rounded-md border px-3 py-2 text-sm ${
             validation.type === "error"
               ? "border-rose-900 bg-rose-950/50 text-rose-200"
               : "border-emerald-900 bg-emerald-950/50 text-emerald-200"
           }`}
         >
-          {validation.message}
-        </p>
+          <p>{validation.message}</p>
+          {validation.type === "success" && (
+            <p>
+              <Link
+                href={`/videos/${encodeURIComponent(validation.pathname)}`}
+                className="underline underline-offset-2 hover:text-emerald-100"
+              >
+                Open uploaded video
+              </Link>
+            </p>
+          )}
+        </div>
       )}
 
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-slate-500">
-          This step validates the form only. No upload request is sent yet.
+          Videos are uploaded to the `videos/` prefix in Vercel Blob.
         </p>
         <button
           type="submit"
+          disabled={submitting}
           className="rounded-md bg-sky-500 px-3 py-2 text-sm font-medium text-slate-950 hover:bg-sky-400"
         >
-          Validate form
+          {submitting ? "Uploading..." : "Upload video"}
         </button>
       </div>
     </form>
@@ -126,54 +179,4 @@ function MetadataRow({ label, value }: { label: string; value: string }) {
       <p className="break-all text-slate-100">{value}</p>
     </div>
   );
-}
-
-function validateVideoFile(file: File): string | null {
-  const extension = getExtension(file.name);
-
-  if (!ALLOWED_EXTENSIONS.includes(extension)) {
-    return "Choose an .mp4, .mov, or .webm video.";
-  }
-
-  if (file.type && !file.type.startsWith("video/")) {
-    return "The selected file does not look like a video.";
-  }
-
-  if (file.size <= 0) {
-    return "The selected file is empty.";
-  }
-
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return `The selected file exceeds the ${formatBytes(MAX_FILE_SIZE_BYTES)} limit.`;
-  }
-
-  return null;
-}
-
-function getExtension(filename: string): string {
-  const dotIndex = filename.lastIndexOf(".");
-  if (dotIndex === -1) return "";
-  return filename.slice(dotIndex).toLowerCase();
-}
-
-function getBaseFilename(filename: string): string {
-  const dotIndex = filename.lastIndexOf(".");
-  if (dotIndex === -1) return filename;
-  return filename.slice(0, dotIndex);
-}
-
-function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes < 0) return "0 B";
-  if (bytes < 1024) return `${bytes} B`;
-
-  const units = ["KB", "MB", "GB", "TB"];
-  let value = bytes / 1024;
-  let unitIndex = 0;
-
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex += 1;
-  }
-
-  return `${value.toFixed(1)} ${units[unitIndex]}`;
 }

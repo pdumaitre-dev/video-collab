@@ -14,8 +14,8 @@ export default function VideoUploadPage() {
         <div className="space-y-1">
           <h2 className="text-lg font-semibold">Upload a video</h2>
           <p className="text-sm text-slate-400">
-            Step 1 is frontend-only: choose a file, run validation, and review
-            the derived metadata before wiring the real upload flow.
+            Choose a file, validate it client-side, and upload it into the
+            `videos/` prefix in Vercel Blob.
           </p>
         </div>
       </div>
