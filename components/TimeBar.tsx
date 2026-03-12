@@ -12,6 +12,10 @@ interface TimeBarProps {
   durationSeconds: number;
   currentTime: number;
   comments?: CommentRange[];
+  selectedRange?: {
+    startSeconds: number;
+    endSeconds: number;
+  } | null;
   onSeek: (timeSeconds: number) => void;
   /** Called with normalized range (start <= end) and the position where the drag ended */
   onRangeSelected: (
@@ -34,6 +38,7 @@ export default function TimeBar({
   durationSeconds,
   currentTime,
   comments = [],
+  selectedRange = null,
   onSeek,
   onRangeSelected
 }: TimeBarProps) {
@@ -100,16 +105,26 @@ export default function TimeBar({
 
   const playedRatio =
     durationSeconds > 0 ? Math.min(currentTime / durationSeconds, 1) : 0;
+  const selectionForDisplay = selection
+    ? {
+        startSeconds: Math.min(
+          selection.dragStartSeconds,
+          selection.dragEndSeconds
+        ),
+        endSeconds: Math.max(selection.dragStartSeconds, selection.dragEndSeconds)
+      }
+    : selectedRange;
+
   const selectionStyle =
-    selection && durationSeconds > 0
+    selectionForDisplay && durationSeconds > 0
       ? (() => {
           const rangeStartSeconds = Math.max(
             0,
-            Math.min(selection.dragStartSeconds, selection.dragEndSeconds)
+            Math.min(selectionForDisplay.startSeconds, selectionForDisplay.endSeconds)
           );
           const rangeEndSeconds = Math.min(
             durationSeconds,
-            Math.max(selection.dragStartSeconds, selection.dragEndSeconds)
+            Math.max(selectionForDisplay.startSeconds, selectionForDisplay.endSeconds)
           );
           return {
             left: `${(rangeStartSeconds / durationSeconds) * 100}%`,
@@ -220,7 +235,7 @@ export default function TimeBar({
           aria-hidden
         />
       </div>
-      {selection && (
+      {selectionForDisplay && (
         <p
           style={{
             fontSize: 11,
@@ -228,8 +243,8 @@ export default function TimeBar({
             color: "#38bdf8"
           }}
         >
-          Selected: {formatTime(Math.min(selection.dragStartSeconds, selection.dragEndSeconds))} –{" "}
-          {formatTime(Math.max(selection.dragStartSeconds, selection.dragEndSeconds))}
+          Selected: {formatTime(selectionForDisplay.startSeconds)} –{" "}
+          {formatTime(selectionForDisplay.endSeconds)}
         </p>
       )}
       <p className="text-xs text-slate-500">

@@ -223,6 +223,7 @@ export default function VideoPageShell({
               durationSeconds={duration}
               currentTime={currentTime}
               comments={comments}
+              selectedRange={selectedRange}
               onSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
                 setSelectedRange({
