@@ -14,7 +14,7 @@ export default async function HomePage() {
           href="/videos"
           className="text-sm text-slate-400 hover:text-slate-200"
         >
-          Pick from public/videos →
+          Browse Blob storage →
         </Link>
       </div>
       {videos.length === 0 ? (

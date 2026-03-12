@@ -126,7 +126,8 @@ These fields support time-based annotation by allowing each comment to be tied t
 - The PostgreSQL database stores:
   - Video records and their metadata.
   - Comment records associated with videos, including their time ranges.
-- Raw video assets are **not** stored in the application or database:
-  - The `Video.sourceUrl` field points to the location of the media (e.g. object storage + CDN or a third-party video platform).
-  - This keeps the application focused on metadata and collaboration concerns while allowing the media pipeline and hosting strategy to evolve independently.
+- Raw video assets are stored in **Vercel Blob** (see `storage/vercel-blob.md`):
+  - The `/videos` page lists videos from the Blob store.
+  - Blob videos are served via direct URLs (public store) or streamed through `/api/blob/stream` (private store).
+  - Database-backed videos use `Video.sourceUrl`, which may point to Blob or another CDN.
 

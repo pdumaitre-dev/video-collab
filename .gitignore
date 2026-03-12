@@ -14,3 +14,5 @@ yarn-error.log*
 .vscode/
 .cursor/
 
+.vercel
+.env*.local

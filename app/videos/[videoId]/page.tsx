@@ -1,6 +1,12 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import VideoPageShell, { type CommentData } from "./VideoPageShell";
+import FileVideoPageShell from "../watch/[filename]/FileVideoPageShell";
+import {
+  listVideoBlobs,
+  getVideoPlaybackUrl
+} from "@/lib/blob";
 
 interface PageProps {
   params: {
@@ -8,38 +14,50 @@ interface PageProps {
   };
 }
 
+function isNumericId(value: string): boolean {
+  const n = Number(value);
+  return Number.isFinite(n) && String(n) === value;
+}
+
 export default async function VideoPage({ params }: PageProps) {
-  const id = Number(params.videoId);
+  const { videoId } = params;
 
-  // #region agent log
-  fetch(
-    "http://127.0.0.1:7854/ingest/74efb10a-2f05-42cd-aded-96a74bcb668c",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "07a926"
-      },
-      body: JSON.stringify({
-        sessionId: "07a926",
-        runId: "initial",
-        hypothesisId: "H1",
-        location: "app/videos/[videoId]/page.tsx:14",
-        message: "VideoPage params and parsed id",
-        data: {
-          rawVideoId: params.videoId,
-          parsedId: id,
-          isFinite: Number.isFinite(id)
-        },
-        timestamp: Date.now()
-      })
+  // Blob storage: videoId is URL-encoded pathname (e.g. "videos%2Fsample.mp4")
+  if (!isNumericId(videoId)) {
+    const pathname = decodeURIComponent(videoId);
+
+    try {
+      const videos = await listVideoBlobs();
+      const blob = videos.find((v) => v.pathname === pathname);
+
+      if (!blob) {
+        notFound();
+      }
+
+      const sourceUrl = getVideoPlaybackUrl(blob);
+
+      return (
+        <div className="space-y-4">
+          <Link
+            href="/videos"
+            className="inline-block text-sm text-slate-400 hover:text-slate-200"
+          >
+            ← Back to videos
+          </Link>
+          <FileVideoPageShell
+            sourceUrl={sourceUrl}
+            title={blob.filename}
+          />
+        </div>
+      );
+    } catch (error) {
+      console.error("Error fetching blob video", error);
+      notFound();
     }
-  ).catch(() => {});
-  // #endregion
-
-  if (!Number.isFinite(id)) {
-    notFound();
   }
+
+  // Database: videoId is numeric
+  const id = Number(videoId);
 
   let video;
   try {
@@ -51,57 +69,7 @@ export default async function VideoPage({ params }: PageProps) {
         }
       }
     });
-
-    // #region agent log
-    fetch(
-      "http://127.0.0.1:7854/ingest/74efb10a-2f05-42cd-aded-96a74bcb668c",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "07a926"
-        },
-        body: JSON.stringify({
-          sessionId: "07a926",
-          runId: "initial",
-          hypothesisId: "H1",
-          location: "app/videos/[videoId]/page.tsx:29",
-          message: "Result of prisma.video.findUnique in VideoPage",
-          data: {
-            id,
-            found: Boolean(video),
-            videoId: video?.id ?? null
-          },
-          timestamp: Date.now()
-        })
-      }
-    ).catch(() => {});
-    // #endregion
   } catch (error) {
-    // #region agent log
-    fetch(
-      "http://127.0.0.1:7854/ingest/74efb10a-2f05-42cd-aded-96a74bcb668c",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "07a926"
-        },
-        body: JSON.stringify({
-          sessionId: "07a926",
-          runId: "initial",
-          hypothesisId: "H2",
-          location: "app/videos/[videoId]/page.tsx:45",
-          message: "Error thrown by prisma.video.findUnique in VideoPage",
-          data: {
-            id,
-            error: error instanceof Error ? error.message : String(error)
-          },
-          timestamp: Date.now()
-        })
-      }
-    ).catch(() => {});
-    // #endregion
     throw error;
   }
 

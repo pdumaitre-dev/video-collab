@@ -1,53 +1,56 @@
 import Link from "next/link";
-import { readdirSync } from "fs";
-import { join } from "path";
+import {
+  listVideoBlobs,
+  getVideoPlaybackUrl,
+  type BlobVideo
+} from "@/lib/blob";
 
-const VIDEO_EXTENSIONS = [".mp4", ".mov"];
-
-function getVideosFromPublicFolder(): string[] {
-  const videosDir = join(process.cwd(), "public", "videos");
+export default async function VideosPickerPage() {
+  let videos: BlobVideo[];
   try {
-    const files = readdirSync(videosDir);
-    return files.filter(
-      (file) =>
-        VIDEO_EXTENSIONS.some((ext) =>
-          file.toLowerCase().endsWith(ext)
-        )
-    );
-  } catch {
-    return [];
+    videos = await listVideoBlobs();
+  } catch (error) {
+    console.error("Error listing video blobs", error);
+    videos = [];
   }
-}
-
-export default function VideosPickerPage() {
-  const videos = getVideosFromPublicFolder();
 
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">Pick a video</h2>
       {videos.length === 0 ? (
         <p className="text-sm text-slate-400">
-          No videos found in public/videos. Add .mp4 or .mov files to get
+          No videos found in Vercel Blob storage. Upload .mp4, .mov, or .webm
+          files to the &quot;videos/&quot; prefix in your Blob store to get
           started.
         </p>
       ) : (
         <ul className="space-y-2">
-          {videos.map((filename) => (
-            <li
-              key={filename}
-              className="rounded-md border border-slate-800 bg-slate-900/60 p-3 transition-colors hover:border-slate-500 hover:bg-slate-900/80"
-            >
-              <Link
-                href={`/videos/watch/${encodeURIComponent(filename)}`}
-                className="flex items-center gap-2"
+          {videos.map((video) => {
+            const playbackUrl = getVideoPlaybackUrl(video);
+            const videoId = encodeURIComponent(video.pathname);
+
+            return (
+              <li
+                key={video.pathname}
+                className="rounded-md border border-slate-800 bg-slate-900/60 p-3 transition-colors hover:border-slate-500 hover:bg-slate-900/80"
               >
-                <span className="font-medium">{filename}</span>
-                <span className="text-xs text-slate-500">
-                  ({filename.split(".").pop()?.toUpperCase()})
-                </span>
-              </Link>
-            </li>
-          ))}
+                <Link
+                  href={`/videos/${videoId}`}
+                  className="flex items-center gap-2"
+                >
+                  <span className="font-medium">{video.filename}</span>
+                  <span className="text-xs text-slate-500">
+                    ({video.filename.split(".").pop()?.toUpperCase()})
+                  </span>
+                  {video.size != null && (
+                    <span className="text-xs text-slate-500">
+                      ({(video.size / 1024 / 1024).toFixed(1)} MB)
+                    </span>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

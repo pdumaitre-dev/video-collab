@@ -3,6 +3,7 @@
 This folder contains high-level documentation for the video annotation application.
 
 - **Architecture**: See `architecture.md` for an overview of the system design, key technologies, and how the codebase is structured.
+- **Storage**: See `storage/vercel-blob.md` for how video files are stored and served via Vercel Blob.
 
 ### Future documentation
 

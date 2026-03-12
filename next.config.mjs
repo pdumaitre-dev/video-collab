@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true
+  reactStrictMode: true,
+  experimental: {
+    serverComponentsExternalPackages: ["@vercel/blob"]
+  }
 };
 
 export default nextConfig;
