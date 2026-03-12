@@ -134,9 +134,11 @@ export default function VideoPageShell({
     <div className="grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)]">
       <div className="space-y-4">
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold">{video.title}</h2>
+          <h2 className="font-heading text-lg font-semibold text-fg-primary">
+            {video.title}
+          </h2>
           {video.description && (
-            <p className="text-sm text-slate-400">{video.description}</p>
+            <p className="text-sm text-fg-secondary">{video.description}</p>
           )}
         </div>
         <div className="space-y-4">
@@ -184,7 +186,7 @@ export default function VideoPageShell({
             </button>
           </div>
           <div className="space-y-1">
-            <p className="text-[11px] font-medium text-slate-400">
+            <p className="text-[11px] font-medium text-fg-muted">
               Time bar (seek & select range)
             </p>
             <TimeBar
@@ -207,8 +209,8 @@ export default function VideoPageShell({
           />
         </div>
       </div>
-      <div className="flex h-full flex-col rounded-md border border-slate-800 bg-slate-900/60 p-3">
-        <h3 className="mb-2 text-sm font-semibold tracking-tight text-slate-100">
+      <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
+        <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
           Comments
         </h3>
         <CommentList

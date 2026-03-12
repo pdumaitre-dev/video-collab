@@ -35,25 +35,25 @@ export default function CommentForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-2 rounded-md border border-slate-800 bg-slate-900/60 p-3"
+      className="space-y-3 rounded-lg border border-white/[0.08] bg-surface-card p-4"
     >
-      <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-        <span className="font-semibold text-slate-300">
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <span className="font-medium text-fg-primary">
           New comment on range
         </span>
         {selectedRange ? (
-          <span>
+          <span className="rounded bg-accent-muted px-2 py-0.5 font-mono text-[11px] text-fg-primary">
             {formatTime(selectedRange.startSeconds)} –{" "}
             {formatTime(selectedRange.endSeconds)}
           </span>
         ) : (
-          <span className="italic text-slate-500">
+          <span className="text-fg-muted">
             Select a range on the time bar
           </span>
         )}
       </div>
       <textarea
-        className="min-h-[72px] w-full rounded-md border border-slate-800 bg-slate-950 px-2 py-1 text-sm text-slate-50 outline-none focus:border-sky-500"
+        className="min-h-[80px] w-full rounded-md border border-white/[0.08] bg-surface-page px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-60"
         placeholder="Add your question or note about this segment..."
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -63,7 +63,7 @@ export default function CommentForm({
         <button
           type="submit"
           disabled={!selectedRange || !text.trim() || submitting}
-          className="rounded-md bg-sky-500 px-3 py-1 text-xs font-medium text-slate-950 disabled:cursor-not-allowed disabled:bg-slate-700"
+          className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Saving..." : "Save comment"}
         </button>

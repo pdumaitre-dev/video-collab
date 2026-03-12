@@ -99,10 +99,10 @@ export default function VideoUploadForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-md border border-slate-800 bg-slate-900/60 p-4"
+      className="space-y-4 rounded-lg border border-white/[0.08] bg-surface-card p-4"
     >
       <div className="space-y-1">
-        <label htmlFor="video-file" className="text-sm font-medium text-slate-100">
+        <label htmlFor="video-file" className="text-sm font-medium text-fg-primary">
           Video file
         </label>
         <input
@@ -112,16 +112,16 @@ export default function VideoUploadForm() {
           accept={ALLOWED_EXTENSIONS.join(",")}
           onChange={handleFileChange}
           disabled={submitting}
-          className="block w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 file:mr-3 file:rounded-md file:border-0 file:bg-sky-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-950 hover:file:bg-sky-400"
+          className="block w-full rounded-md border border-white/[0.08] bg-surface-page px-3 py-2 text-sm text-fg-primary file:mr-3 file:rounded-md file:border-0 file:bg-accent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-accent-hover"
         />
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-fg-muted">
           Accepted formats: MP4, MOV, WEBM. Max size:{" "}
           {formatBytes(MAX_FILE_SIZE_BYTES)}.
         </p>
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="video-name" className="text-sm font-medium text-slate-100">
+        <label htmlFor="video-name" className="text-sm font-medium text-fg-primary">
           Video name
         </label>
         <input
@@ -132,14 +132,14 @@ export default function VideoUploadForm() {
           onChange={(event) => setName(event.target.value)}
           disabled={submitting}
           placeholder="Generated from filename"
-          className="block w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-sky-500"
+          className="block w-full rounded-md border border-white/[0.08] bg-surface-page px-3 py-2 text-sm text-fg-primary outline-none focus:border-accent"
         />
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-fg-muted">
           Defaults to the filename without the extension.
         </p>
       </div>
 
-      <div className="grid gap-3 rounded-md border border-slate-800 bg-slate-950/70 p-3 text-sm sm:grid-cols-2">
+      <div className="grid gap-3 rounded-md border border-white/[0.08] bg-surface-page/50 p-3 text-sm sm:grid-cols-2">
         <MetadataRow
           label="Filename"
           value={file?.name ?? "No file selected"}
@@ -175,7 +175,7 @@ export default function VideoUploadForm() {
               <p>Saved name: {validation.name}</p>
               <Link
                 href={`/videos/${validation.publicId}`}
-                className="underline underline-offset-2 hover:text-emerald-100"
+                className="inline-flex rounded-md bg-white/10 px-2 py-1 text-sm font-medium no-underline transition-colors hover:bg-white/20"
               >
                 Open uploaded video
               </Link>
@@ -188,13 +188,13 @@ export default function VideoUploadForm() {
       )}
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-fg-muted">
           Videos are uploaded to the `videos/` prefix in Vercel Blob.
         </p>
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-sky-500 px-3 py-2 text-sm font-medium text-slate-950 hover:bg-sky-400"
+          className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? "Uploading..." : "Upload video"}
         </button>
@@ -206,8 +206,8 @@ export default function VideoUploadForm() {
 function MetadataRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="space-y-1">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="break-all text-slate-100">{value}</p>
+      <p className="text-xs uppercase tracking-wide text-fg-muted">{label}</p>
+      <p className="break-all text-fg-primary">{value}</p>
     </div>
   );
 }
