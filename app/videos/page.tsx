@@ -1,14 +1,44 @@
 import Link from "next/link";
 import {
   listVideoBlobs,
-  getVideoPlaybackUrl,
   type BlobVideo
 } from "@/lib/blob";
+import { prisma } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 export default async function VideosPickerPage() {
   let videos: BlobVideo[];
+  let storedVideoMap = new Map<string, { publicId: string; name: string }>();
   try {
     videos = await listVideoBlobs();
+
+    const storedVideos = await prisma.video.findMany({
+      where: {
+        pathname: {
+          in: videos.map((video) => video.pathname)
+        }
+      },
+      select: {
+        pathname: true,
+        publicId: true,
+        name: true
+      }
+    });
+
+    storedVideoMap = new Map(
+      storedVideos
+        .filter(
+          (
+            video
+          ): video is { pathname: string; publicId: string; name: string } =>
+            video.pathname != null
+        )
+        .map((video) => [
+          video.pathname,
+          { publicId: video.publicId, name: video.name }
+        ])
+    );
   } catch (error) {
     console.error("Error listing video blobs", error);
     videos = [];
@@ -34,8 +64,9 @@ export default async function VideosPickerPage() {
       ) : (
         <ul className="space-y-2">
           {videos.map((video) => {
-            const playbackUrl = getVideoPlaybackUrl(video);
-            const videoId = encodeURIComponent(video.pathname);
+            const storedVideo = storedVideoMap.get(video.pathname);
+            const videoId = storedVideo?.publicId ?? encodeURIComponent(video.pathname);
+            const displayName = storedVideo?.name ?? video.filename;
 
             return (
               <li
@@ -46,7 +77,7 @@ export default async function VideosPickerPage() {
                   href={`/videos/${videoId}`}
                   className="flex items-center gap-2"
                 >
-                  <span className="font-medium">{video.filename}</span>
+                  <span className="font-medium">{displayName}</span>
                   <span className="text-xs text-slate-500">
                     ({video.filename.split(".").pop()?.toUpperCase()})
                   </span>

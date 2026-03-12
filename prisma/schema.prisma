@@ -10,8 +10,11 @@ datasource db {
 model Video {
   id              Int       @id @default(autoincrement())
   title           String
+  name            String
+  publicId        String    @unique
   description     String?
   sourceUrl       String
+  pathname        String?   @unique
   durationSeconds Float?
   createdAt       DateTime  @default(now())
 

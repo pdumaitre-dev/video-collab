@@ -13,13 +13,14 @@ import {
 type ValidationState =
   | { type: "idle" }
   | { type: "error"; message: string }
-  | { type: "success"; message: string; pathname: string };
+  | { type: "success"; message: string; pathname: string; publicId: string; name: string };
 
 const ALLOWED_EXTENSIONS = getAllowedVideoExtensions();
 const MAX_FILE_SIZE_BYTES = getMaxVideoFileSizeBytes();
 
 export default function VideoUploadForm() {
   const [file, setFile] = React.useState<File | null>(null);
+  const [name, setName] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [validation, setValidation] = React.useState<ValidationState>({
     type: "idle"
@@ -33,6 +34,7 @@ export default function VideoUploadForm() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] ?? null;
     setFile(nextFile);
+    setName(nextFile ? getBaseFilename(nextFile.name) : "");
     setValidation({ type: "idle" });
   };
 
@@ -58,6 +60,7 @@ export default function VideoUploadForm() {
 
       const formData = new FormData();
       formData.set("file", file);
+      formData.set("name", name.trim() || derivedName);
 
       const response = await fetch("/api/blob/upload", {
         method: "POST",
@@ -65,10 +68,10 @@ export default function VideoUploadForm() {
       });
 
       const payload = (await response.json()) as
-        | { error?: string; pathname?: string }
+        | { error?: string; pathname?: string; publicId?: string; name?: string }
         | undefined;
 
-      if (!response.ok || !payload?.pathname) {
+      if (!response.ok || !payload?.pathname || !payload.publicId || !payload.name) {
         setValidation({
           type: "error",
           message: payload?.error ?? "Upload failed."
@@ -79,6 +82,8 @@ export default function VideoUploadForm() {
       setValidation({
         type: "success",
         pathname: payload.pathname,
+        publicId: payload.publicId,
+        name: payload.name,
         message: "Upload complete. The video is now stored in Blob storage."
       });
     } catch {
@@ -115,14 +120,33 @@ export default function VideoUploadForm() {
         </p>
       </div>
 
+      <div className="space-y-1">
+        <label htmlFor="video-name" className="text-sm font-medium text-slate-100">
+          Video name
+        </label>
+        <input
+          id="video-name"
+          name="video-name"
+          type="text"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          disabled={submitting}
+          placeholder="Generated from filename"
+          className="block w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-sky-500"
+        />
+        <p className="text-xs text-slate-400">
+          Defaults to the filename without the extension.
+        </p>
+      </div>
+
       <div className="grid gap-3 rounded-md border border-slate-800 bg-slate-950/70 p-3 text-sm sm:grid-cols-2">
         <MetadataRow
           label="Filename"
           value={file?.name ?? "No file selected"}
         />
         <MetadataRow
-          label="Derived name"
-          value={derivedName || "Will be generated from filename"}
+          label="Display name"
+          value={name || derivedName || "Will be generated from filename"}
         />
         <MetadataRow
           label="File size"
@@ -144,14 +168,21 @@ export default function VideoUploadForm() {
         >
           <p>{validation.message}</p>
           {validation.type === "success" && (
-            <p>
+            <div className="space-y-1">
+              <p>
+                Assigned ID: <span className="font-mono">{validation.publicId}</span>
+              </p>
+              <p>Saved name: {validation.name}</p>
               <Link
-                href={`/videos/${encodeURIComponent(validation.pathname)}`}
+                href={`/videos/${validation.publicId}`}
                 className="underline underline-offset-2 hover:text-emerald-100"
               >
                 Open uploaded video
               </Link>
-            </p>
+              <span className="block text-xs text-emerald-300/80">
+                Blob path: {validation.pathname}
+              </span>
+            </div>
           )}
         </div>
       )}

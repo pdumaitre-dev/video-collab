@@ -1,5 +1,7 @@
 const ALLOWED_EXTENSIONS = [".mp4", ".mov", ".webm"] as const;
 const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024;
+const PUBLIC_ID_ALPHABET =
+  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 export function getAllowedVideoExtensions() {
   return [...ALLOWED_EXTENSIONS];
@@ -37,8 +39,25 @@ export function getBaseFilename(filename: string): string {
   return filename.slice(0, dotIndex);
 }
 
+export function normalizeVideoName(name: string, fallbackFilename: string): string {
+  const trimmed = name.trim();
+  if (trimmed) return trimmed;
+  return getBaseFilename(fallbackFilename);
+}
+
 export function buildVideoBlobPath(filename: string): string {
   return `videos/${sanitizeFilename(filename)}`;
+}
+
+export function generatePublicId(length = 11): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(length));
+  let value = "";
+
+  for (const byte of bytes) {
+    value += PUBLIC_ID_ALPHABET[byte % PUBLIC_ID_ALPHABET.length];
+  }
+
+  return value;
 }
 
 export function formatBytes(bytes: number): string {
@@ -64,10 +83,12 @@ function getExtension(filename: string): string {
 }
 
 function sanitizeFilename(filename: string): string {
-  return filename
+  const sanitized = filename
     .trim()
     .replace(/^videos\//i, "")
     .replace(/[^\w.\- ]+/g, "-")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
+
+  return sanitized || "upload.mp4";
 }

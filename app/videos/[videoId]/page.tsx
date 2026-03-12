@@ -5,6 +5,9 @@ import {
   listVideoBlobs,
   getVideoPlaybackUrl
 } from "@/lib/blob";
+import { prisma } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: {
@@ -14,10 +17,22 @@ interface PageProps {
 
 export default async function VideoPage({ params }: PageProps) {
   const { videoId } = params;
-  const pathname = decodeURIComponent(videoId);
+  const lookupValue = decodeURIComponent(videoId);
 
   try {
     const videos = await listVideoBlobs();
+    const storedVideo = await prisma.video.findFirst({
+      where: {
+        OR: [{ publicId: lookupValue }, { pathname: lookupValue }]
+      },
+      select: {
+        publicId: true,
+        name: true,
+        pathname: true
+      }
+    });
+
+    const pathname = storedVideo?.pathname ?? lookupValue;
     const blob = videos.find((v) => v.pathname === pathname);
 
     if (!blob) {
@@ -36,7 +51,7 @@ export default async function VideoPage({ params }: PageProps) {
         </Link>
         <FileVideoPageShell
           sourceUrl={sourceUrl}
-          title={blob.filename}
+          title={storedVideo?.name ?? blob.filename}
           pathname={blob.pathname}
         />
       </div>
