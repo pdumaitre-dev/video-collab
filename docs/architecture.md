@@ -49,12 +49,12 @@ flowchart LR
 
 - **Frontend pages (server components)**
   - `app/page.tsx`
-    - Fetches videos from the database (via Prisma) and renders a list of available videos.
+    - Lists videos from Vercel Blob storage and renders links to each video.
+  - `app/videos/page.tsx`
+    - Lists videos from the Blob store (same as home, with "Browse Blob storage" link).
   - `app/videos/[videoId]/page.tsx`
-    - Parses the `videoId` route parameter.
-    - Loads the selected `Video` record and its associated `Comment` records.
-    - Maps database entities into serializable `video` and `initialComments` props.
-    - Renders the client-side `VideoPageShell` with those props.
+    - Parses the `videoId` route parameter (URL-encoded blob pathname).
+    - Loads the video from Blob storage and renders `FileVideoPageShell` with playback URL and pathname for comments.
 
 - **Client-side feature shell**
   - `app/videos/[videoId]/VideoPageShell.tsx`
@@ -67,7 +67,7 @@ flowchart LR
       - Passing `onTimeUpdate` and `onDurationChange` to `VideoPlayer`.
       - Implementing `handleSeek` to control playback time via `videoRef.current.currentTime`.
       - Wiring `TimeBar` callbacks (`onSeek`, `onRangeSelected`) to seek and select time ranges.
-    - Handles comment creation via `CommentForm`, posting to `/api/videos/[videoId]/comments`.
+    - Handles comment creation via `persistComment` callback (e.g. to `/api/blob/comments` for blob videos).
 
 - **Core UI components**
   - `components/VideoPlayer.tsx`
@@ -83,38 +83,23 @@ flowchart LR
     - `CommentList` renders existing comments and allows selecting a comment to jump to its start time.
 
 - **API routes**
-  - `app/api/videos/route.ts`
-    - Lists videos with metadata (id, title, description, `sourceUrl`, `durationSeconds`) for UI use or external clients.
-  - `app/api/videos/[videoId]/route.ts`
-    - Returns metadata for a single video, identified by `videoId`.
-  - `app/api/videos/[videoId]/comments/route.ts`
-    - `GET`: Returns all comments for a video, ordered by `startSeconds` and `createdAt`.
-    - `POST`: Validates input and creates new comments for a given video.
+  - `app/api/blob/stream/route.ts`
+    - Streams private blob videos for playback.
+  - `app/api/blob/comments/route.ts`
+    - `GET`: Returns comments for a blob video by pathname.
+    - `POST`: Creates new comments for a blob video.
 
 ### Data model
 
-The data model is defined in `prisma/schema.prisma` and centers on two entities:
+The data model is defined in `prisma/schema.prisma`. For blob storage videos:
 
-- `Video`
+- `Comment_blob`
   - Key fields:
     - `id`: Primary key.
-    - `title`, `description`: Metadata for display.
-    - `sourceUrl`: URL where the actual video file is hosted (e.g. CDN, object storage, or video platform).
-    - `durationSeconds`: Optional cached duration of the video in seconds.
-    - `createdAt`: Timestamp of creation.
-  - Relationships:
-    - `comments`: One-to-many relationship to `Comment` records.
-
-- `Comment`
-  - Key fields:
-    - `id`: Primary key.
-    - `videoId`: Foreign key referencing the parent `Video`.
-    - `startSeconds`, `endSeconds`: Define the time range within the video the comment refers to.
+    - `pathname`: Blob pathname (e.g. `videos/sample.mp4`).
+    - `startSeconds`, `endSeconds`: Time range within the video the comment refers to.
     - `text`: The comment body.
     - `createdAt`, `updatedAt`: Timestamps for auditing and ordering.
-  - Relationships and behavior:
-    - Belongs to a single `Video` (`videoId`).
-    - Uses `onDelete: Cascade` so comments are automatically removed when their parent video is deleted.
 
 These fields support time-based annotation by allowing each comment to be tied to a precise interval within the video. UI components such as `TimeBar` and `CommentList` use `startSeconds` and `endSeconds` to render and navigate between annotations.
 
@@ -125,10 +110,8 @@ These fields support time-based annotation by allowing each comment to be tied t
   - Exposing JSON APIs for reading and writing video metadata and comments.
   - Enforcing basic validation and shaping data for the frontend.
 - The PostgreSQL database stores:
-  - Video records and their metadata.
-  - Comment records associated with videos, including their time ranges.
+  - `Comment_blob` records for comments on blob videos (keyed by pathname).
 - Raw video assets are stored in **Vercel Blob** (see `storage/vercel-blob.md`):
-  - The `/videos` page lists videos from the Blob store.
+  - The home page and `/videos` page list videos from the Blob store.
   - Blob videos are served via direct URLs (public store) or streamed through `/api/blob/stream` (private store).
-  - Database-backed videos use `Video.sourceUrl`, which may point to Blob or another CDN.
 

@@ -1,10 +1,14 @@
 import Link from "next/link";
-import { prisma } from "@/lib/db";
+import { listVideoBlobs, type BlobVideo } from "@/lib/blob";
 
 export default async function HomePage() {
-  const videos = await prisma.video.findMany({
-    orderBy: { createdAt: "desc" }
-  });
+  let videos: BlobVideo[];
+  try {
+    videos = await listVideoBlobs();
+  } catch (error) {
+    console.error("Error listing video blobs", error);
+    videos = [];
+  }
 
   return (
     <div className="space-y-4">
@@ -19,31 +23,35 @@ export default async function HomePage() {
       </div>
       {videos.length === 0 ? (
         <p className="text-sm text-slate-400">
-          No videos yet. Once the database is seeded, they will appear here.
+          No videos found in Vercel Blob storage. Upload .mp4, .mov, or .webm
+          files to the &quot;videos/&quot; prefix in your Blob store to get
+          started.
         </p>
       ) : (
         <ul className="space-y-2">
-          {videos.map((video) => (
-            <li
-              key={video.id}
-              className="rounded-md border border-slate-800 bg-slate-900/60 p-3 hover:border-slate-500"
-            >
-              <Link
-                href={`/videos/${video.id}`}
-                className="flex flex-col gap-1"
+          {videos.map((video) => {
+            const videoId = encodeURIComponent(video.pathname);
+            return (
+              <li
+                key={video.pathname}
+                className="rounded-md border border-slate-800 bg-slate-900/60 p-3 hover:border-slate-500"
               >
-                <span className="font-medium">{video.title}</span>
-                {video.description && (
-                  <span className="text-xs text-slate-400">
-                    {video.description}
-                  </span>
-                )}
-              </Link>
-            </li>
-          ))}
+                <Link
+                  href={`/videos/${videoId}`}
+                  className="flex flex-col gap-1"
+                >
+                  <span className="font-medium">{video.filename}</span>
+                  {video.size != null && (
+                    <span className="text-xs text-slate-400">
+                      ({(video.size / 1024 / 1024).toFixed(1)} MB)
+                    </span>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
   );
 }
-

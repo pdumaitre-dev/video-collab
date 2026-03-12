@@ -30,8 +30,8 @@ export type PersistCommentFn = (
 interface VideoPageShellProps {
   video: VideoForClient;
   initialComments: CommentData[];
-  /** When provided, used instead of API for persisting comments (e.g. for file-based videos) */
-  persistComment?: PersistCommentFn;
+  /** Persists comments (e.g. to blob storage or localStorage) */
+  persistComment: PersistCommentFn;
 }
 
 export default function VideoPageShell({
@@ -104,50 +104,18 @@ export default function VideoPageShell({
   const handleNewComment = async (text: string) => {
     if (!selectedRange) return;
 
-    if (persistComment) {
-      const created = await persistComment(
-        {
-          startSeconds: selectedRange.startSeconds,
-          endSeconds: selectedRange.endSeconds
-        },
-        text
-      );
-      setComments((prev) =>
-        [...prev, created].sort((a, b) => a.startSeconds - b.startSeconds)
-      );
-      setSelectedRange(null);
+    if (!persistComment) {
+      console.error("persistComment is required for saving comments");
       return;
     }
 
-    if (video.id == null) {
-      console.error("No persistComment and no video.id");
-      return;
-    }
-
-    const res = await fetch(`/api/videos/${video.id}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const created = await persistComment(
+      {
         startSeconds: selectedRange.startSeconds,
-        endSeconds: selectedRange.endSeconds,
-        text
-      })
-    });
-
-    if (!res.ok) {
-      console.error("Failed to create comment");
-      return;
-    }
-
-    const created = (await res.json()) as {
-      id: number;
-      startSeconds: number;
-      endSeconds: number;
-      text: string;
-      createdAt: string;
-      updatedAt: string;
-    };
-
+        endSeconds: selectedRange.endSeconds
+      },
+      text
+    );
     setComments((prev) =>
       [...prev, created].sort((a, b) => a.startSeconds - b.startSeconds)
     );
