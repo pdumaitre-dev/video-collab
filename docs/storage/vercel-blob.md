@@ -43,6 +43,24 @@ The `/videos` page lists videos from the Blob store using the `list()` SDK metho
   - **Public store**: Uses the direct Blob URL
 - **Database videos**: When `videoId` is numeric, the app loads the video from PostgreSQL (the `Video.sourceUrl` may point to a Blob URL or other CDN)
 
+### Video loading and seeking
+
+When videos are served through the API stream (`/api/blob/stream`), the route does not support HTTP Range requests. Without Range support, the browser cannot seek to arbitrary positions—it can only play linearly from the start. This breaks time-range selection: when users drag on the time bar to select a range for a comment, the video preview stays stuck on the first frame.
+
+**Our approach: full fetch → blob URL**
+
+For URLs that point to `/api/blob/stream`, the `VideoPlayer` component fetches the entire video, creates an in-memory blob URL with `URL.createObjectURL()`, and uses that as the video source. Once loaded, the full video is available in memory, so seeking and time-range selection work instantly.
+
+- **Why**: The API stream returns a full response without Range support. Preloading into a blob URL is a client-side workaround that enables seeking without changing the server.
+- **When**: Applied only when `src` includes `/api/blob/stream` (private blob playback). Direct URLs (public blobs, static files, CDN) are used as-is and support Range natively.
+- **Trade-offs**: The full video must download before playback starts. For large videos, this increases initial load time and memory usage. For public blobs, use `BLOB_ACCESS=public` to avoid this path and get direct CDN URLs with Range support.
+
+| Source | Loading strategy | Seeking |
+|--------|------------------|---------|
+| `/api/blob/stream` (private) | Full fetch → blob URL | Works after load |
+| Direct blob URL (public) | Native | Works immediately |
+| Static file, CDN | Native | Works immediately |
+
 ### Uploading videos
 
 Upload files to the `videos/` prefix in your Blob store. You can use:
@@ -67,6 +85,7 @@ const blob = await put("videos/my-video.mp4", file, {
 |------|---------|
 | `lib/blob.ts` | Blob helpers: `listVideoBlobs()`, `getBlobStream()`, `getVideoPlaybackUrl()` |
 | `app/api/blob/stream/route.ts` | Streams private blobs for video playback |
+| `components/VideoPlayer.tsx` | Video element; preloads API stream URLs as blob URLs for seeking support |
 | `app/videos/page.tsx` | Lists videos from Blob storage |
 | `app/videos/[videoId]/page.tsx` | Serves blob videos or DB-backed videos |
 

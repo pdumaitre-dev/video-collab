@@ -72,6 +72,7 @@ flowchart LR
 - **Core UI components**
   - `components/VideoPlayer.tsx`
     - Thin wrapper around a `<video>` element.
+    - For API stream URLs (private blob playback), preloads the full video into a blob URL so seeking and time-range selection work; see `docs/storage/vercel-blob.md` for details.
     - Accepts a `videoRef` so parent components can control playback programmatically.
     - Emits `onTimeUpdate` and `onDurationChange` callbacks to keep UI state in sync with playback.
   - `components/TimeBar.tsx`
