@@ -1,38 +1,31 @@
 # External Playback Controls
 
-This page documents how playback is controlled on the video page when using an external play/pause button.
+Playback on the video page is controlled by an external play/pause button in `app/videos/[videoId]/VideoPageShell.tsx`.
 
-## Control Strategy
+## Rules
 
-- External-first playback control.
-- Native video play/pause controls are hidden.
-- Playback state displayed in UI is driven by media events from the video element.
+- The button calls `video.play()` or `video.pause()` through `videoRef`.
+- UI state stays event-driven.
+- The video element is the source of truth.
 
 ## Event Contract
 
 `VideoPlayer` exposes playback lifecycle callbacks:
 
-- `onPlay`: fired when media begins playback.
-- `onPause`: fired when media is paused.
-- `onEnded`: fired when playback reaches the end.
+- `onPlay`
+- `onPause`
+- `onEnded`
 
-`VideoPageShell` listens to these events and updates local `isPlaying` state.
+`VideoPageShell` maps them to `isPlaying`.
 
-## Source of Truth
+## Why
 
-- `HTMLVideoElement` state and events are the source of truth.
-- Do not optimistically flip `isPlaying` on button click.
-- The external button only invokes `video.play()` / `video.pause()`; resulting events update the UI.
+- `video.play()` can reject.
+- Event-driven state avoids UI drift.
+- `onEnded` resets the button state without extra logic.
 
-## Error Handling
-
-- `video.play()` returns a promise and can reject due to browser autoplay/user-gesture policies.
-- Keep UI state event-driven and log playback errors for diagnostics.
-
-## Coherency Rules
+## State Mapping
 
 - `onPlay` => `isPlaying = true`
 - `onPause` => `isPlaying = false`
 - `onEnded` => `isPlaying = false`
-
-This guarantees consistent UI state during normal playback, pause interactions, and end-of-media transitions.

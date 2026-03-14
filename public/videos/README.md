@@ -1,10 +1,10 @@
-# Sample videos
+# Static Test Videos
 
-Put your sample video here so the app can play it.
+These files are legacy/manual-test assets for the static route under `/videos/watch/[filename]`.
 
-- **Filename:** `sample.mp4`
-- **Full path:** `public/videos/sample.mp4`
-- **URL in app:** `/videos/sample.mp4` (used by the seed data)
+They are not part of the main Blob-backed flow exposed by `/`, `/videos`, or `/videos/upload`.
 
-Use any short MP4 (e.g. from your phone, or a free sample from [Sample Videos](https://sample-videos.com/)).  
-If you use a different name, either rename the file to `sample.mp4` or update the seed in `prisma/seed.ts` and re-seed.
+Notes:
+
+- Keep only if the static route is still useful for manual testing.
+- `prisma/seed.ts` still points at an older `sample.mp4` path and does not match the current files here.

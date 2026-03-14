@@ -1,15 +1,15 @@
-## Documentation
+# Docs
 
-This folder contains high-level documentation for the video annotation application.
+Current docs:
 
-- **Architecture**: See `architecture.md` for an overview of the system design, key technologies, and how the codebase is structured.
-- **Storage**: See `storage/vercel-blob.md` for how video files are stored and served via Vercel Blob.
+- `architecture.md`: app structure, runtime flow, and data model.
+- `storage/vercel-blob.md`: Blob setup, upload flow, playback, and pathname rules.
+- `video-player-page/external-playback-controls.md`: play/pause control behavior.
+- `style-reference.md`: UI tokens and layout rules.
 
-### Future documentation
+Files to review or remove:
 
-Planned documentation areas as the product and platform mature:
-
-- **Security & authentication**: How users are authenticated (e.g. SSO/OIDC) and authorized to access videos and comments, and how sensitive data is protected.
-- **Operations & deployment**: Environments, CI/CD pipelines, hosting model for the Next.js app, database provisioning, observability, and incident response.
-- **API reference**: Formal documentation for the JSON APIs (e.g. OpenAPI/Swagger) if external integrations are required.
+- `../lib/blob-storage.ts`: appears unused.
+- `../prisma/seed.ts`: still documents/seeds the older static sample flow.
+- `../app/videos/watch/[filename]/page.tsx`: legacy static-file route, not part of the main UI flow.
 

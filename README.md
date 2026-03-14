@@ -1,50 +1,70 @@
-## Video Annotation MVP
+# Video Collab
 
-Minimal Next.js + Postgres application for annotating a video with time-range comments.
+Next.js 14 app for annotating videos with time-range comments. Videos live in Vercel Blob. Metadata and comments live in PostgreSQL via Prisma.
 
-### Stack
+## Stack
 
-- Next.js (App Router, React + TypeScript)
-- PostgreSQL
-- Prisma ORM
+- Next.js 14 App Router
+- React 18 + TypeScript
+- Prisma + PostgreSQL
+- Vercel Blob
 - Tailwind CSS
 
-### Getting started
+## Requirements
 
-1. **Install dependencies**
+- Node.js 24+
+- `DATABASE_URL`
+- `BLOB_READ_WRITE_TOKEN`
+- Optional: `BLOB_ACCESS=private|public` (`private` by default)
+
+## Quickstart
+
+1. Install dependencies.
 
 ```bash
 npm install
 ```
 
-2. **Configure Postgres**
-
-Update `DATABASE_URL` in `.env` to point to a running PostgreSQL instance, for example:
+2. Set env vars.
 
 ```bash
-DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/video_annotation_mvp?schema=public"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB?schema=public"
+BLOB_READ_WRITE_TOKEN="..."
+# optional
+BLOB_ACCESS="private"
 ```
 
-3. **Apply migrations and generate the client**
+3. Apply Prisma migrations and generate the client.
 
 ```bash
-npx prisma migrate dev --name init
+npx prisma migrate deploy
 npx prisma generate
 ```
 
-4. **Seed sample data (optional)**
-
-```bash
-npx ts-node prisma/seed.ts
-```
-
-Ensure that a video file exists at `public/videos/sample.mp4` (or update the seed data `sourceUrl`).
-
-5. **Run the dev server**
+4. Start the app.
 
 ```bash
 npm run dev
 ```
 
-Then open `http://localhost:3000` to view the app.
+Open [http://localhost:3000](http://localhost:3000).
+
+## Main Flows
+
+- `/` and `/videos` list video files from the Blob `videos/` prefix.
+- `/videos/upload` uploads a video into Blob and creates a `Video` record with a `publicId`.
+- `/videos/[videoId]` resolves either a stored `publicId` or a raw pathname and opens the annotation UI.
+- Comments for Blob videos are stored in the `Comment_blob` table, keyed by Blob pathname.
+
+## Notes
+
+- Public Blob mode uses direct Blob URLs for playback.
+- Private Blob mode streams through `/api/blob/stream`; the client preloads the file into a blob URL so seeking still works.
+- The older static-file sample flow under `public/videos/` is legacy/manual-test material, not the primary product path.
+
+## Docs
+
+- `docs/architecture.md`
+- `docs/storage/vercel-blob.md`
+- `docs/video-player-page/external-playback-controls.md`
 
