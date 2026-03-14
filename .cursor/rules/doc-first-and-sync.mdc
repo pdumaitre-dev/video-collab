@@ -1,0 +1,35 @@
+---
+description: Use repo docs first and keep them in sync with the app. Applies at conversation start and to all plan/build flows.
+alwaysApply: true
+---
+
+# Doc-First Context and Sync
+
+## First Step: Ingest Docs
+
+At the start of each conversation, read `docs/*.md` (and nested docs like `docs/storage/*.md`) before exploring code. Use them as the primary source of truth for architecture, style, and conventions.
+
+## Inconsistencies
+
+If you find docs that contradict the app or each other, surface it to the user with:
+- What is inconsistent
+- Where (file + section)
+- A suggested fix
+
+## Plan Flows
+
+Every plan must include a **docs update** step when the work will change behavior, APIs, or conventions. Specify which docs to update and what to change.
+
+## Build Flows
+
+When you make code changes:
+
+1. Update `docs/` to reflect the new behavior, architecture, or conventions.
+2. Update `AGENTS.md` if the change affects setup, commands, gotchas, or agent instructions.
+3. Keep docs concise and to the point. Assume you are documenting for seasoned devs and agents.
+
+## Doc Style
+
+- Be concise. Avoid filler and obvious explanations.
+- Focus on what matters: architecture, decisions, constraints, gotchas.
+- Prefer concrete examples over abstract descriptions.

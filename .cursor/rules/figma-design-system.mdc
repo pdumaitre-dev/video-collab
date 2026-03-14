@@ -1,0 +1,83 @@
+---
+description: Rules for implementing Figma designs in this Next.js App Router project. Covers component placement, Tailwind tokens, asset handling, and the required Figma MCP workflow.
+globs: "{app,components}/**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Figma Design System Rules
+
+## Project Stack
+
+- This app uses Next.js 14 App Router, React 18, strict TypeScript, and Tailwind CSS 3.
+- Use `@/` imports based on `tsconfig.json` instead of deep relative imports.
+- Do not introduce a UI kit, CSS-in-JS library, or icon package for Figma work unless the user explicitly asks.
+
+## Component Organization
+
+- Reusable UI primitives belong in `components/ui/`.
+- Shared app components belong in `components/`.
+- Route files stay in `app/**/page.tsx`; pages should remain server components by default.
+- When a route needs interaction, keep data loading in the server page and pass serializable props into a colocated client shell, following the `page.tsx` + `VideoPageShell.tsx` pattern already used in this repo.
+- Use PascalCase for component filenames, component names, and prop interfaces/types.
+- Match the existing export style: prefer `export default function ComponentName(...)` for components.
+- Reuse `BackLink` and `NavButton` for navigation and CTA patterns before creating new button-like navigation UI.
+- If a Figma element will be reused across screens, extract it into `components/ui/`; if it is tightly coupled to one route, colocate it near that route.
+
+## Styling Rules
+
+- Use Tailwind utility classes directly in JSX. Do not switch Figma implementations to CSS Modules, styled-components, or inline-style-heavy patterns unless an interaction demands it.
+- `tailwind.config.ts` and `docs/style-reference.md` are the source of truth for styling decisions.
+- IMPORTANT: Prefer semantic Tailwind tokens over raw color values:
+  - Surfaces: `bg-surface-page`, `bg-surface-panel`, `bg-surface-card`, `bg-surface-elevated`
+  - Text: `text-fg-primary`, `text-fg-secondary`, `text-fg-muted`, `text-fg-disabled`
+  - Accent: `bg-accent`, `hover:bg-accent-hover`, `bg-accent-muted`, `ring-accent`
+- IMPORTANT: Do not hardcode hex colors when an existing token fits the design.
+- Use `font-heading` for headings, brand text, and nav labels; use the default body font / `font-body` for body copy and controls.
+- Follow the existing dark surface hierarchy from `docs/style-reference.md`: page -> panel -> card -> elevated.
+- Use `rounded-lg` for panels/cards and `rounded-md` for controls by default.
+- Use `border-white/[0.08]` for standard borders and `border-white/[0.12]` for emphasis and hover states.
+- Keep shadows restrained and consistent with the existing panel style, e.g. `shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]`.
+- Prefer `gap-*` and `space-y-*` for spacing rhythm; avoid arbitrary pixel values unless they are required for a precise interaction element.
+
+## Figma MCP Integration Rules
+
+These rules must be followed for every Figma-driven change in this repo.
+
+### Required Flow
+
+1. Run `get_design_context` for the exact node or nodes being implemented.
+2. If the response is too large or truncated, run `get_metadata` to map the file, then re-run `get_design_context` for the specific nodes you need.
+3. Run `get_screenshot` for the same node variant before implementation.
+4. Only after you have both structured context and screenshot should you fetch assets and start coding.
+5. Translate the Figma output into this repo's Next.js App Router + Tailwind conventions.
+6. Validate the final UI against the Figma screenshot for visual and behavioral parity.
+
+### Implementation Rules
+
+- Treat the Figma MCP output as a design reference, not final production code.
+- Reuse existing components and layout patterns before creating new ones.
+- Keep the server/client split intentional: server components for data loading and static layout, client components only for interactivity.
+- Match the repo's existing navigation approach with `Link`, `BackLink`, and `NavButton` rather than plain text links.
+- Keep forms and interactive controls accessible with semantic elements, labels, and visible `focus-visible` states.
+- When a Figma implementation touches the annotation flow, do not restyle `components/VideoPlayer.tsx`, `components/TimeBar.tsx`, or the play/pause control unless the user explicitly asks for those changes.
+- Default to the repo's dark premium visual system even if the raw Figma export includes values that look generic or off-brand. Follow `docs/style-reference.md` when resolving ambiguity.
+
+## Asset Handling
+
+- The Figma MCP server can return localhost asset URLs. IMPORTANT: if a localhost asset source is provided, use it directly.
+- IMPORTANT: Do not install a new icon library. Use Figma-provided assets or inline SVG components.
+- Store checked-in static UI assets from Figma under `public/figma/` or a feature-specific subdirectory inside it.
+- Reference checked-in assets with absolute public paths such as `/figma/example.svg`.
+- Keep user-uploaded media in the existing Blob-based `videos/` flow. Do not put product video uploads in `public/`.
+- Prefer inline SVG React components for small reusable icons, matching existing patterns in `components/ui/BackLink.tsx` and other current UI code.
+- IMPORTANT: Do not use placeholders when the Figma payload already provides a concrete asset.
+
+## Project-Specific Conventions
+
+- Load Prisma/Blob-backed data in server components when possible, then pass serializable props down to interactive shells.
+- Use `export const dynamic = "force-dynamic"` only on pages that truly need live Blob/DB reads.
+- Keep route-aware UI in `app/` and shared/reusable UI in `components/`.
+- There is no established test harness in this repo yet. Do not add a new testing framework as part of a Figma implementation unless the user asks for it.
+- Run lint after substantial Figma-driven code changes.
+- Favor semantic HTML and keyboard-friendly controls. Do not introduce clickable `div`/`li` patterns when a `button` or `Link` is appropriate.
+- Preserve the project's brand tone from `docs/style-reference.md`: modern, premium, studio-athletic, and not playful or decorative.

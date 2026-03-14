@@ -12,7 +12,10 @@ yarn-error.log*
 .DS_Store
 .idea/
 .vscode/
-.cursor/
+.cursor/*
+!.cursor/rules/
+.cursor/rules/*
+!.cursor/rules/*.mdc
 
 .vercel
 .env*.local
