@@ -2,6 +2,8 @@
 
 This document defines the visual system for the Ballet Booster webapp. Use it as the source of truth when adding or modifying UI.
 
+**Design system in Figma:** A live design system page at `/design-system` can be captured into Figma via the Figma MCP `generate_figma_design` tool. See `docs/design-system-figma.md` for the capture workflow.
+
 ## Brand and Visual Intent
 
 - **Tone**: Modern, sport-oriented, fashionable — in the spirit of hot yoga, dynamo, ballet.

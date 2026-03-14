@@ -6,6 +6,7 @@ Current docs:
 - `storage/vercel-blob.md`: Blob setup, upload flow, playback, and pathname rules.
 - `video-player-page/external-playback-controls.md`: play/pause control behavior.
 - `style-reference.md`: UI tokens and layout rules.
+- `design-system-figma.md`: capturing the design system page into Figma.
 
 Files to review or remove:
 
