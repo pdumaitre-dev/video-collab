@@ -43,3 +43,9 @@ Standard commands are in `package.json` scripts — see `README.md` "Getting sta
 - **Remote database.** `DATABASE_URL` points to a Neon cloud PostgreSQL instance — no local PostgreSQL needed.
 - **Prisma generate after npm install.** Always run `npx prisma generate` after `npm install` to regenerate the Prisma client in `node_modules`.
 - **Vercel Blob is optional.** The homepage (`/`) lists DB-backed videos; `/videos` lists Blob-stored videos. The app works without `BLOB_READ_WRITE_TOKEN` for DB-backed video flows.
+
+### Skills
+
+- **Core critical-path smoke test:** `.cursor/skills/core-e2e-smoke-test/SKILL.md`
+  - Run this when validating that core video annotation behavior was not regressed.
+  - If any smoke-test step fails or is inconclusive, explicitly notify the reviewer with expected vs actual behavior and evidence.
