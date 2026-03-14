@@ -38,10 +38,9 @@ The `/videos` page lists videos from the Blob store using the `list()` SDK metho
 
 ### Video playback (`/videos/[videoId]`)
 
-- **Blob videos**: When `videoId` is a URL-encoded pathname (e.g. `videos%2Fsample.mp4`), the app fetches the blob and serves it:
-  - **Private store**: Streams via `GET /api/blob/stream?pathname=...`
-  - **Public store**: Uses the direct Blob URL
-- **Database videos**: When `videoId` is numeric, the app loads the video from PostgreSQL (the `Video.sourceUrl` may point to a Blob URL or other CDN)
+The `videoId` is a URL-encoded pathname (e.g. `videos%2Fsample.mp4`). The app fetches the blob and serves it:
+- **Private store**: Streams via `GET /api/blob/stream?pathname=...`
+- **Public store**: Uses the direct Blob URL
 
 ### Video loading and seeking
 
@@ -87,7 +86,7 @@ const blob = await put("videos/my-video.mp4", file, {
 | `app/api/blob/stream/route.ts` | Streams private blobs for video playback |
 | `components/VideoPlayer.tsx` | Video element; preloads API stream URLs as blob URLs for seeking support |
 | `app/videos/page.tsx` | Lists videos from Blob storage |
-| `app/videos/[videoId]/page.tsx` | Serves blob videos or DB-backed videos |
+| `app/videos/[videoId]/page.tsx` | Serves blob videos from pathname |
 
 ## Access levels
 

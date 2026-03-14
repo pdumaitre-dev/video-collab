@@ -8,7 +8,7 @@ import VideoPageShell, {
 
 const STORAGE_PREFIX = "video-comments:";
 
-function loadComments(sourceUrl: string): CommentData[] {
+function loadCommentsFromStorage(sourceUrl: string): CommentData[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_PREFIX + sourceUrl);
@@ -20,7 +20,7 @@ function loadComments(sourceUrl: string): CommentData[] {
   }
 }
 
-function saveComments(sourceUrl: string, comments: CommentData[]) {
+function saveCommentsToStorage(sourceUrl: string, comments: CommentData[]) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(STORAGE_PREFIX + sourceUrl, JSON.stringify(comments));
@@ -32,24 +32,78 @@ function saveComments(sourceUrl: string, comments: CommentData[]) {
 interface FileVideoPageShellProps {
   sourceUrl: string;
   title: string;
+  /** Blob pathname (e.g. "videos/sample.mp4"). When provided, comments are persisted in Comment_blob table. */
+  pathname?: string;
 }
 
 export default function FileVideoPageShell({
   sourceUrl,
-  title
+  title,
+  pathname
 }: FileVideoPageShellProps) {
-  // Start with [] so server and client match on first render (avoid hydration mismatch).
-  // Load from localStorage only after mount.
   const [initialComments, setInitialComments] =
     React.useState<CommentData[]>(() => []);
 
   React.useEffect(() => {
-    setInitialComments(loadComments(sourceUrl));
-  }, [sourceUrl]);
+    if (pathname) {
+      fetch(
+        `/api/blob/comments?pathname=${encodeURIComponent(pathname)}`
+      )
+        .then((res) => (res.ok ? res.json() : []))
+        .then((data: Array<{ id: number; startSeconds: number; endSeconds: number; text: string; createdAt: string }>) => {
+          setInitialComments(
+            data.map((c) => ({
+              id: c.id,
+              startSeconds: c.startSeconds,
+              endSeconds: c.endSeconds,
+              text: c.text,
+              createdAt: c.createdAt
+            }))
+          );
+        })
+        .catch(() => setInitialComments([]));
+    } else {
+      setInitialComments(loadCommentsFromStorage(sourceUrl));
+    }
+  }, [pathname, sourceUrl]);
 
   const persistComment: PersistCommentFn = React.useCallback(
     async (range, text) => {
-      const current = loadComments(sourceUrl);
+      if (pathname) {
+        const res = await fetch("/api/blob/comments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pathname,
+            startSeconds: range.startSeconds,
+            endSeconds: range.endSeconds,
+            text
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? "Failed to create comment");
+        }
+
+        const created = (await res.json()) as {
+          id: number;
+          startSeconds: number;
+          endSeconds: number;
+          text: string;
+          createdAt: string;
+        };
+
+        return {
+          id: created.id,
+          startSeconds: created.startSeconds,
+          endSeconds: created.endSeconds,
+          text: created.text,
+          createdAt: created.createdAt
+        };
+      }
+
+      const current = loadCommentsFromStorage(sourceUrl);
       const newComment: CommentData = {
         id: Date.now(),
         startSeconds: range.startSeconds,
@@ -60,10 +114,10 @@ export default function FileVideoPageShell({
       const updated = [...current, newComment].sort(
         (a, b) => a.startSeconds - b.startSeconds
       );
-      saveComments(sourceUrl, updated);
+      saveCommentsToStorage(sourceUrl, updated);
       return newComment;
     },
-    [sourceUrl]
+    [pathname, sourceUrl]
   );
 
   return (

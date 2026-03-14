@@ -23,9 +23,14 @@ export default function CommentList({
 }: CommentListProps) {
   if (comments.length === 0) {
     return (
-      <p className="mt-2 text-xs text-slate-500">
-        No comments yet. Select a time range on the time bar to add one.
-      </p>
+      <div className="mt-4 rounded-lg border border-dashed border-white/[0.12] bg-surface-card/50 py-8 text-center">
+        <p className="text-sm text-fg-secondary">
+          No comments yet.
+        </p>
+        <p className="mt-1 text-xs text-fg-muted">
+          Select a time range on the time bar to add one.
+        </p>
+      </div>
     );
   }
 
@@ -36,20 +41,20 @@ export default function CommentList({
         return (
           <li
             key={c.id}
-            className={`cursor-pointer rounded-md border px-3 py-2 text-xs transition-colors ${
+            className={`cursor-pointer rounded-lg border px-3 py-3 text-sm transition-all ${
               isSelected
-                ? "border-sky-400 bg-sky-500/10"
-                : "border-slate-800 bg-slate-900/60 hover:border-slate-500"
+                ? "border-accent bg-accent-muted ring-1 ring-accent/30"
+                : "border-white/[0.08] bg-surface-card hover:border-white/[0.12] hover:bg-surface-elevated"
             }`}
             onClick={() => onSelect(c.id)}
           >
-            <div className="mb-1 flex items-center justify-between font-mono text-[11px] text-slate-400">
+            <div className="mb-1.5 flex items-center justify-between font-mono text-[11px] text-fg-muted">
               <span>
                 {formatTime(c.startSeconds)} – {formatTime(c.endSeconds)}
               </span>
               <span>{formatDateTime(c.createdAt)}</span>
             </div>
-            <p className="text-slate-100">{c.text}</p>
+            <p className="text-fg-primary leading-relaxed">{c.text}</p>
           </li>
         );
       })}

@@ -30,8 +30,8 @@ export type PersistCommentFn = (
 interface VideoPageShellProps {
   video: VideoForClient;
   initialComments: CommentData[];
-  /** When provided, used instead of API for persisting comments (e.g. for file-based videos) */
-  persistComment?: PersistCommentFn;
+  /** Persists comments (e.g. to blob storage or localStorage) */
+  persistComment: PersistCommentFn;
 }
 
 export default function VideoPageShell({
@@ -104,50 +104,18 @@ export default function VideoPageShell({
   const handleNewComment = async (text: string) => {
     if (!selectedRange) return;
 
-    if (persistComment) {
-      const created = await persistComment(
-        {
-          startSeconds: selectedRange.startSeconds,
-          endSeconds: selectedRange.endSeconds
-        },
-        text
-      );
-      setComments((prev) =>
-        [...prev, created].sort((a, b) => a.startSeconds - b.startSeconds)
-      );
-      setSelectedRange(null);
+    if (!persistComment) {
+      console.error("persistComment is required for saving comments");
       return;
     }
 
-    if (video.id == null) {
-      console.error("No persistComment and no video.id");
-      return;
-    }
-
-    const res = await fetch(`/api/videos/${video.id}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const created = await persistComment(
+      {
         startSeconds: selectedRange.startSeconds,
-        endSeconds: selectedRange.endSeconds,
-        text
-      })
-    });
-
-    if (!res.ok) {
-      console.error("Failed to create comment");
-      return;
-    }
-
-    const created = (await res.json()) as {
-      id: number;
-      startSeconds: number;
-      endSeconds: number;
-      text: string;
-      createdAt: string;
-      updatedAt: string;
-    };
-
+        endSeconds: selectedRange.endSeconds
+      },
+      text
+    );
     setComments((prev) =>
       [...prev, created].sort((a, b) => a.startSeconds - b.startSeconds)
     );
@@ -166,9 +134,11 @@ export default function VideoPageShell({
     <div className="grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)]">
       <div className="space-y-4">
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold">{video.title}</h2>
+          <h2 className="font-heading text-lg font-semibold text-fg-primary">
+            {video.title}
+          </h2>
           {video.description && (
-            <p className="text-sm text-slate-400">{video.description}</p>
+            <p className="text-sm text-fg-secondary">{video.description}</p>
           )}
         </div>
         <div className="space-y-4">
@@ -216,7 +186,7 @@ export default function VideoPageShell({
             </button>
           </div>
           <div className="space-y-1">
-            <p className="text-[11px] font-medium text-slate-400">
+            <p className="text-[11px] font-medium text-fg-muted">
               Time bar (seek & select range)
             </p>
             <TimeBar
@@ -239,8 +209,8 @@ export default function VideoPageShell({
           />
         </div>
       </div>
-      <div className="flex h-full flex-col rounded-md border border-slate-800 bg-slate-900/60 p-3">
-        <h3 className="mb-2 text-sm font-semibold tracking-tight text-slate-100">
+      <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
+        <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
           Comments
         </h3>
         <CommentList

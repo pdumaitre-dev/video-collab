@@ -12,8 +12,11 @@ async function main() {
   const video = await prisma.video.create({
     data: {
       title: "Sample Lecture",
+      name: "Sample Lecture",
+      publicId: "samplelecture1",
       description: "Sample video for time-range annotation.",
       sourceUrl: "/videos/sample.mp4",
+      pathname: null,
       durationSeconds: 600
     }
   });

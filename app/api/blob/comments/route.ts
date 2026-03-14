@@ -1,38 +1,39 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { listVideoBlobs } from "@/lib/blob";
 
-interface Params {
-  params: {
-    videoId: string;
-  };
-}
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const pathname = searchParams.get("pathname");
 
-export async function GET(request: Request, { params }: Params) {
-  const videoId = Number(params.videoId);
-
-  if (!Number.isFinite(videoId)) {
-    return NextResponse.json({ error: "Invalid video id" }, { status: 400 });
+  if (!pathname || typeof pathname !== "string") {
+    return NextResponse.json(
+      { error: "pathname query parameter is required" },
+      { status: 400 }
+    );
   }
 
+  const decoded = decodeURIComponent(pathname);
+
   try {
-    const comments = await prisma.comment.findMany({
-      where: { videoId },
+    const comments = await prisma.comment_blob.findMany({
+      where: { pathname: decoded },
       orderBy: [{ startSeconds: "asc" }, { createdAt: "asc" }]
     });
 
     return NextResponse.json(
       comments.map((c) => ({
         id: c.id,
-        videoId: c.videoId,
+        pathname: c.pathname,
         startSeconds: c.startSeconds,
         endSeconds: c.endSeconds,
         text: c.text,
-        createdAt: c.createdAt,
-        updatedAt: c.updatedAt
+        createdAt: c.createdAt.toISOString(),
+        updatedAt: c.updatedAt.toISOString()
       }))
     );
   } catch (error) {
-    console.error("Error fetching comments", error);
+    console.error("Error fetching blob comments", error);
     return NextResponse.json(
       { error: "Failed to fetch comments" },
       { status: 500 }
@@ -40,13 +41,7 @@ export async function GET(request: Request, { params }: Params) {
   }
 }
 
-export async function POST(request: Request, { params }: Params) {
-  const videoId = Number(params.videoId);
-
-  if (!Number.isFinite(videoId)) {
-    return NextResponse.json({ error: "Invalid video id" }, { status: 400 });
-  }
-
+export async function POST(request: Request) {
   let body: unknown;
 
   try {
@@ -55,11 +50,27 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { startSeconds, endSeconds, text } = body as {
+  const { pathname, startSeconds, endSeconds, text } = body as {
+    pathname?: string;
     startSeconds?: number;
     endSeconds?: number;
     text?: string;
   };
+
+  if (!pathname || typeof pathname !== "string") {
+    return NextResponse.json(
+      { error: "pathname is required" },
+      { status: 400 }
+    );
+  }
+
+  const trimmedPathname = pathname.trim();
+  if (!trimmedPathname) {
+    return NextResponse.json(
+      { error: "pathname cannot be empty" },
+      { status: 400 }
+    );
+  }
 
   if (
     typeof startSeconds !== "number" ||
@@ -81,7 +92,6 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const trimmed = (text ?? "").trim();
-
   if (!trimmed) {
     return NextResponse.json(
       { error: "Comment text is required" },
@@ -90,17 +100,19 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   try {
-    const video = await prisma.video.findUnique({
-      where: { id: videoId }
-    });
+    const videos = await listVideoBlobs();
+    const blob = videos.find((v) => v.pathname === trimmedPathname);
 
-    if (!video) {
-      return NextResponse.json({ error: "Video not found" }, { status: 404 });
+    if (!blob) {
+      return NextResponse.json(
+        { error: "Blob video not found" },
+        { status: 404 }
+      );
     }
 
-    const comment = await prisma.comment.create({
+    const comment = await prisma.comment_blob.create({
       data: {
-        videoId,
+        pathname: trimmedPathname,
         startSeconds,
         endSeconds,
         text: trimmed
@@ -110,21 +122,20 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json(
       {
         id: comment.id,
-        videoId: comment.videoId,
+        pathname: comment.pathname,
         startSeconds: comment.startSeconds,
         endSeconds: comment.endSeconds,
         text: comment.text,
-        createdAt: comment.createdAt,
-        updatedAt: comment.updatedAt
+        createdAt: comment.createdAt.toISOString(),
+        updatedAt: comment.updatedAt.toISOString()
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error("Error creating comment", error);
+    console.error("Error creating blob comment", error);
     return NextResponse.json(
       { error: "Failed to create comment" },
       { status: 500 }
     );
   }
 }
-
