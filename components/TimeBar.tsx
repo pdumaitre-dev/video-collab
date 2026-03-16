@@ -388,7 +388,7 @@ export default function TimeBar({
             }}
           />
         </div>
-        {selection && (
+        {visibleRange && (
           <div
             style={{
               position: "absolute",
