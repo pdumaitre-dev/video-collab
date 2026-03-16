@@ -48,7 +48,7 @@ export default function CommentForm({
           </span>
         ) : (
           <span className="text-fg-muted">
-            Select a range on the time bar
+            Select a range on the ruler or time bar
           </span>
         )}
       </div>

@@ -21,9 +21,9 @@ flowchart LR
 ## Important Files
 
 - `app/videos/[videoId]/page.tsx`: server entry for the annotation page.
-- `app/videos/[videoId]/VideoPageShell.tsx`: client shell for playback, range selection, and comments.
+- `app/videos/[videoId]/VideoPageShell.tsx`: client shell for playback, ruler/timebar range selection, and comments.
 - `components/VideoPlayer.tsx`: wraps `<video>` and handles the private-blob preload workaround.
-- `components/TimeBar.tsx`: seek bar and range selection UI.
+- `components/TimeBar.tsx`: combined ruler + time bar with shared drag handling, current-time cursor, and range overlays.
 - `app/api/blob/upload/route.ts`: Blob upload plus `Video` record creation.
 - `app/api/blob/comments/route.ts`: pathname-keyed comment read/write API.
 - `app/api/blob/stream/route.ts`: playback proxy for private Blob mode.

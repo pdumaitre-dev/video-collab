@@ -116,6 +116,14 @@ surface-page (deepest)
 - Selected: `border-accent`, `bg-accent-muted`, `ring-1 ring-accent/30`.
 - Metadata (time range, created): `font-mono`, `text-fg-muted`, `text-[11px]`.
 
+## Player Timeline
+
+- `components/TimeBar.tsx` is a combined ruler + time bar. The ruler sits directly above the bar and stretches with it as one control.
+- Show `0:00` at the left edge of the ruler and the full video duration at the right edge.
+- Use evenly spaced ruler ticks with slate strokes, a white current-time cursor that spans from the bar up into the ruler, and a downward arrow head.
+- Use a blue overlay for the active or committed selected range on both the ruler and the time bar.
+- While dragging, show the current time as a contrasting pill attached to the cursor.
+
 ## Depth and Feel (Without Images)
 
 - **Layered surfaces**: Use page → panel → card → elevated hierarchy.
@@ -130,10 +138,9 @@ surface-page (deepest)
 The following components and UI elements are **out of scope** for style changes:
 
 - **Video player** (`components/VideoPlayer.tsx`): Video surface, loading, error states.
-- **Time bar** (`components/TimeBar.tsx`): Seek bar, range selection, current time, duration.
 - **Play/pause button**: The control in `VideoPageShell` that toggles playback.
 
-These remain as-is to preserve playback behavior and accessibility.
+These remain as-is to preserve playback behavior and accessibility, except for the timeline rules above.
 
 ## Acceptable vs. Avoid
 

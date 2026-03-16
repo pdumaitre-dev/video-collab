@@ -187,12 +187,13 @@ export default function VideoPageShell({
           </div>
           <div className="space-y-1">
             <p className="text-[11px] font-medium text-fg-muted">
-              Time bar (seek & select range)
+              Timeline ruler and time bar
             </p>
             <TimeBar
               durationSeconds={duration}
               currentTime={currentTime}
               comments={comments}
+              selectedRange={selectedRange}
               onSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
                 setSelectedRange({
