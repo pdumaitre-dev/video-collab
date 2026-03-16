@@ -37,7 +37,7 @@ export default function TimeBar({
   onSeek,
   onRangeSelected
 }: TimeBarProps) {
-  const barRef = React.useRef<HTMLDivElement | null>(null);
+  const timelineRef = React.useRef<HTMLDivElement | null>(null);
   const dragStartSecondsRef = React.useRef(0);
   const [selection, setSelection] = React.useState<{
     dragStartSeconds: number;
@@ -46,7 +46,7 @@ export default function TimeBar({
 
   const toSeconds = React.useCallback(
     (clientX: number): number => {
-      const rect = barRef.current?.getBoundingClientRect();
+      const rect = timelineRef.current?.getBoundingClientRect();
       if (!rect || durationSeconds <= 0) return 0;
       const x = Math.min(Math.max(clientX - rect.left, 0), rect.width);
       return (x / rect.width) * durationSeconds;
@@ -54,13 +54,13 @@ export default function TimeBar({
     [durationSeconds]
   );
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleClickSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (durationSeconds <= 0) return;
     const seconds = toSeconds(e.clientX);
     onSeek(seconds);
   };
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseDownSelection = (e: React.MouseEvent<HTMLDivElement>) => {
     if (durationSeconds <= 0) return;
     e.preventDefault();
     const dragStartSeconds = toSeconds(e.clientX);
@@ -98,8 +98,10 @@ export default function TimeBar({
     window.addEventListener("mouseup", onUp);
   };
 
+  const tickCount = 24;
   const playedRatio =
     durationSeconds > 0 ? Math.min(currentTime / durationSeconds, 1) : 0;
+  const cursorOffsetPercent = playedRatio * 100;
   const selectionStyle =
     selection && durationSeconds > 0
       ? (() => {
@@ -112,6 +114,8 @@ export default function TimeBar({
             Math.max(selection.dragStartSeconds, selection.dragEndSeconds)
           );
           return {
+            rangeStartSeconds,
+            rangeEndSeconds,
             left: `${(rangeStartSeconds / durationSeconds) * 100}%`,
             width: `${((rangeEndSeconds - rangeStartSeconds) / durationSeconds) * 100}%`
           };
@@ -141,81 +145,235 @@ export default function TimeBar({
         <span>Duration: {formatTime(durationSeconds)}</span>
       </div>
       <div
-        ref={barRef}
+        ref={timelineRef}
         style={{
           position: "relative",
-          height: 32,
           width: "100%",
           minWidth: 200,
-          backgroundColor: "#475569",
-          borderRadius: 9999,
           cursor: "pointer"
         }}
-        onClick={handleClick}
-        onMouseDown={handleMouseDown}
-        role="slider"
-        aria-valuemin={0}
-        aria-valuemax={durationSeconds}
-        aria-valuenow={currentTime}
       >
         <div
           style={{
-            position: "absolute",
-            top: 4,
-            bottom: 4,
-            left: 4,
-            right: 4,
-            backgroundColor: "#64748b",
-            borderRadius: 9999
+            position: "relative",
+            height: 26,
+            backgroundColor: "#334155",
+            borderRadius: 8,
+            overflow: "hidden"
           }}
+          onClick={handleClickSeek}
+          onMouseDown={handleMouseDownSelection}
           aria-hidden
-        />
-        {comments.map((c) => {
-          const left = (c.startSeconds / durationSeconds) * 100;
-          const width =
-            ((c.endSeconds - c.startSeconds) / durationSeconds) * 100;
-          return (
+        >
+          {selectionStyle && (
             <div
-              key={c.id}
               style={{
                 position: "absolute",
-                top: 4,
-                bottom: 4,
-                left: `${left}%`,
-                width: `${width}%`,
-                backgroundColor: "rgba(16, 185, 129, 0.6)",
-                borderRadius: 9999,
-                zIndex: 5
+                inset: 0,
+                left: selectionStyle.left,
+                width: selectionStyle.width,
+                backgroundColor: "rgba(56, 189, 248, 0.28)",
+                zIndex: 7
               }}
               aria-hidden
             />
-          );
-        })}
+          )}
+          {Array.from({ length: tickCount + 1 }, (_, index) => {
+            const percent = (index / tickCount) * 100;
+            const isMajor = index % 4 === 0;
+            return (
+              <div
+                key={`ruler-tick-${index}`}
+                style={{
+                  position: "absolute",
+                  left: `${percent}%`,
+                  bottom: 0,
+                  width: 1,
+                  height: isMajor ? 12 : 7,
+                  backgroundColor: isMajor ? "#e2e8f0" : "#94a3b8",
+                  opacity: isMajor ? 0.9 : 0.65,
+                  transform: "translateX(-0.5px)"
+                }}
+                aria-hidden
+              />
+            );
+          })}
+          <span
+            style={{
+              position: "absolute",
+              left: 6,
+              top: 4,
+              fontSize: 10,
+              fontFamily: "monospace",
+              color: "#e2e8f0"
+            }}
+          >
+            0:00
+          </span>
+          <span
+            style={{
+              position: "absolute",
+              right: 6,
+              top: 4,
+              fontSize: 10,
+              fontFamily: "monospace",
+              color: "#e2e8f0"
+            }}
+          >
+            {formatTime(durationSeconds)}
+          </span>
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            top: 34,
+            left: 0,
+            right: 0,
+            height: 32,
+            backgroundColor: "#475569",
+            borderRadius: 9999,
+            overflow: "hidden",
+            cursor: "pointer"
+          }}
+          onClick={handleClickSeek}
+          onMouseDown={handleMouseDownSelection}
+          role="slider"
+          aria-valuemin={0}
+          aria-valuemax={durationSeconds}
+          aria-valuenow={currentTime}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: 4,
+              bottom: 4,
+              left: 4,
+              right: 4,
+              backgroundColor: "#64748b",
+              borderRadius: 9999
+            }}
+            aria-hidden
+          />
+          {comments.map((c) => {
+            const left = (c.startSeconds / durationSeconds) * 100;
+            const width =
+              ((c.endSeconds - c.startSeconds) / durationSeconds) * 100;
+            return (
+              <div
+                key={c.id}
+                style={{
+                  position: "absolute",
+                  top: 4,
+                  bottom: 4,
+                  left: `${left}%`,
+                  width: `${width}%`,
+                  backgroundColor: "rgba(16, 185, 129, 0.6)",
+                  borderRadius: 9999,
+                  zIndex: 5
+                }}
+                aria-hidden
+              />
+            );
+          })}
+          {selectionStyle && (
+            <div
+              style={{
+                position: "absolute",
+                top: 2,
+                bottom: 2,
+                left: selectionStyle.left,
+                width: selectionStyle.width,
+                backgroundColor: "rgba(56, 189, 248, 0.7)",
+                borderRadius: 9999,
+                zIndex: 10
+              }}
+              aria-hidden
+            />
+          )}
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            left: `${cursorOffsetPercent}%`,
+            width: 2,
+            backgroundColor: "#ffffff",
+            transform: "translateX(-1px)",
+            zIndex: 20,
+            pointerEvents: "none"
+          }}
+          aria-hidden
+        />
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: `${cursorOffsetPercent}%`,
+            transform: "translateX(-50%)",
+            width: 0,
+            height: 0,
+            borderLeft: "6px solid transparent",
+            borderRight: "6px solid transparent",
+            borderTop: "8px solid #ffffff",
+            zIndex: 21,
+            pointerEvents: "none"
+          }}
+          aria-hidden
+        />
+        {selection && (
+          <div
+            style={{
+              position: "absolute",
+              left: `${cursorOffsetPercent}%`,
+              top: 8,
+              transform: "translateX(-50%)",
+              fontSize: 11,
+              fontFamily: "monospace",
+              color: "#fde68a",
+              backgroundColor: "rgba(15, 23, 42, 0.9)",
+              border: "1px solid rgba(253, 230, 138, 0.8)",
+              borderRadius: 9999,
+              padding: "1px 6px",
+              zIndex: 22,
+              pointerEvents: "none",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {formatTime(currentTime)}
+          </div>
+        )}
         {selectionStyle && (
           <div
             style={{
               position: "absolute",
-              top: 2,
-              bottom: 2,
               left: selectionStyle.left,
+              top: 8,
               width: selectionStyle.width,
-              backgroundColor: "rgba(56, 189, 248, 0.7)",
-              borderRadius: 9999,
-              zIndex: 10
+              display: "flex",
+              justifyContent: "center",
+              pointerEvents: "none",
+              zIndex: 8
             }}
-            aria-hidden
-          />
+          >
+            <span
+              style={{
+                fontSize: 10,
+                fontFamily: "monospace",
+                color: "#38bdf8",
+                backgroundColor: "rgba(15, 23, 42, 0.85)",
+                borderRadius: 9999,
+                padding: "0 6px"
+              }}
+            >
+              {formatTime(selectionStyle.rangeStartSeconds)} –{" "}
+              {formatTime(selectionStyle.rangeEndSeconds)}
+            </span>
+          </div>
         )}
         <div
           style={{
-            position: "absolute",
-            top: 2,
-            bottom: 2,
-            left: `${playedRatio * 100}%`,
-            width: 4,
-            backgroundColor: "white",
-            borderRadius: 2,
-            zIndex: 20
+            height: 66
           }}
           aria-hidden
         />
@@ -233,7 +391,7 @@ export default function TimeBar({
         </p>
       )}
       <p className="text-xs text-slate-500">
-        Click to seek; drag to select a range for a comment.
+        Click or drag on the ruler or time bar to seek and select a range for a comment.
       </p>
     </div>
   );
