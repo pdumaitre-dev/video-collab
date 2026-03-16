@@ -130,7 +130,7 @@ surface-page (deepest)
 The following components and UI elements are **out of scope** for style changes:
 
 - **Video player** (`components/VideoPlayer.tsx`): Video surface, loading, error states.
-- **Time bar** (`components/TimeBar.tsx`): Seek bar, range selection, current time, duration.
+- **Time bar** (`components/TimeBar.tsx`): Ruler with ticks (0:00–duration), seek bar, range selection, current-time cursor (white bar from bar to ruler with inverted arrow), click/drag on ruler or bar.
 - **Play/pause button**: The control in `VideoPageShell` that toggles playback.
 
 These remain as-is to preserve playback behavior and accessibility.
