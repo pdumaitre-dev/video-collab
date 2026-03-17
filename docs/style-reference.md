@@ -113,6 +113,7 @@ surface-page (deepest)
 
 - Empty state: Dashed border, centered message, two-line hint.
 - Comment items: `rounded-lg`, `bg-surface-card`, `border-white/[0.08]`.
+- Delete button: trash icon, shown on hover; red hover state, loading spinner while deleting.
 - Selected: `border-accent`, `bg-accent-muted`, `ring-1 ring-accent/30`.
 - Metadata (time range, created): `font-mono`, `text-fg-muted`, `text-[11px]`.
 

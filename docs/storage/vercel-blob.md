@@ -42,6 +42,7 @@ Videos are stored in Vercel Blob under the `videos/` prefix. The database stores
 
 - `GET /api/blob/comments?pathname=...`
 - `POST /api/blob/comments`
+- `DELETE /api/blob/comments?id=<commentId>`
 - Comments are stored in `Comment_blob`, keyed by Blob pathname.
 
 ## Private Playback Tradeoff
