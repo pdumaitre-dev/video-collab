@@ -139,3 +139,48 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const idParam = searchParams.get("id");
+
+  if (!idParam) {
+    return NextResponse.json(
+      { error: "id query parameter is required" },
+      { status: 400 }
+    );
+  }
+
+  const id = parseInt(idParam, 10);
+  if (!Number.isInteger(id) || id < 1) {
+    return NextResponse.json(
+      { error: "id must be a positive integer" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const comment = await prisma.comment_blob.findUnique({
+      where: { id }
+    });
+
+    if (!comment) {
+      return NextResponse.json(
+        { error: "Comment not found" },
+        { status: 404 }
+      );
+    }
+
+    await prisma.comment_blob.delete({
+      where: { id }
+    });
+
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    console.error("Error deleting blob comment", error);
+    return NextResponse.json(
+      { error: "Failed to delete comment" },
+      { status: 500 }
+    );
+  }
+}

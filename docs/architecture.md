@@ -25,7 +25,7 @@ flowchart LR
 - `components/VideoPlayer.tsx`: wraps `<video>` and handles the private-blob preload workaround.
 - `components/TimeBar.tsx`: combined timeline UI (ruler + time bar), seek cursor, and drag range selection.
 - `app/api/blob/upload/route.ts`: Blob upload plus `Video` record creation.
-- `app/api/blob/comments/route.ts`: pathname-keyed comment read/write API.
+- `app/api/blob/comments/route.ts`: pathname-keyed comment API (GET, POST, DELETE).
 - `app/api/blob/stream/route.ts`: playback proxy for private Blob mode.
 - `lib/blob.ts`: Blob listing, metadata, and playback URL helpers.
 - `lib/video-upload.ts`: file validation, size limit, pathname building, and public ID helpers.

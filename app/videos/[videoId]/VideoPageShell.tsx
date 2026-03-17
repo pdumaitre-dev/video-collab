@@ -27,17 +27,22 @@ export type PersistCommentFn = (
   text: string
 ) => Promise<CommentData>;
 
+export type DeleteCommentFn = (commentId: number) => Promise<void>;
+
 interface VideoPageShellProps {
   video: VideoForClient;
   initialComments: CommentData[];
   /** Persists comments (e.g. to blob storage or localStorage) */
   persistComment: PersistCommentFn;
+  /** Deletes a comment. When provided, a delete button is shown on each comment. */
+  deleteComment?: DeleteCommentFn;
 }
 
 export default function VideoPageShell({
   video,
   initialComments,
-  persistComment
+  persistComment,
+  deleteComment
 }: VideoPageShellProps) {
   const [comments, setComments] = React.useState<CommentData[]>(initialComments);
 
@@ -130,6 +135,15 @@ export default function VideoPageShell({
     }
   };
 
+  const handleDeleteComment = async (commentId: number) => {
+    if (!deleteComment) return;
+    await deleteComment(commentId);
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+    if (selectedCommentId === commentId) {
+      setSelectedCommentId(null);
+    }
+  };
+
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)]">
       <div className="space-y-4">
@@ -215,6 +229,7 @@ export default function VideoPageShell({
           comments={comments}
           selectedCommentId={selectedCommentId}
           onSelect={handleSelectComment}
+          onDelete={deleteComment ? handleDeleteComment : undefined}
         />
       </div>
     </div>
