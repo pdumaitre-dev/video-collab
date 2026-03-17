@@ -130,7 +130,7 @@ surface-page (deepest)
 The following components and UI elements are **out of scope** for style changes:
 
 - **Video player** (`components/VideoPlayer.tsx`): Video surface, loading, error states.
-- **Time bar** (`components/TimeBar.tsx`): Seek bar, range selection, current time, duration. Drag start/end times use same format as current time (yellow `#fde68a`, monospace, 11px) and sit slightly above the ruler.
+- **Time bar** (`components/TimeBar.tsx`): Seek bar, range selection, current time, duration. Drag start/end times use same format as current time (yellow `#fde68a`, monospace, 11px) and sit slightly above the ruler. Selected range overlay uses yellow (`rgba(253, 230, 138, 0.5)`) on both ruler and timebar; it persists until comment is submitted. Green comment ranges (z-index 5) sit below the yellow overlay (z-index 6) so yellow takes precedence when overlapping.
 - **Play/pause button**: The control in `VideoPageShell` that toggles playback.
 
 These remain as-is to preserve playback behavior and accessibility.

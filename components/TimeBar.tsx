@@ -8,10 +8,17 @@ type CommentRange = {
   endSeconds: number;
 };
 
+interface SelectedRange {
+  startSeconds: number;
+  endSeconds: number;
+}
+
 interface TimeBarProps {
   durationSeconds: number;
   currentTime: number;
   comments?: CommentRange[];
+  /** Persisted selection from parent; shown until comment is submitted */
+  selectedRange?: SelectedRange | null;
   onSeek: (timeSeconds: number) => void;
   /** Called with normalized range (start <= end) and the position where the drag ended */
   onRangeSelected: (
@@ -30,10 +37,13 @@ function formatTime(totalSeconds: number): string {
   return `${minutes}:${padded}`;
 }
 
+const YELLOW_RANGE = "rgba(253, 230, 138, 0.5)";
+
 export default function TimeBar({
   durationSeconds,
   currentTime,
   comments = [],
+  selectedRange = null,
   onSeek,
   onRangeSelected
 }: TimeBarProps) {
@@ -104,24 +114,33 @@ export default function TimeBar({
   const playedRatio =
     durationSeconds > 0 ? Math.min(currentTime / durationSeconds, 1) : 0;
   const cursorOffsetPercent = playedRatio * 100;
-  const selectionStyle =
+
+  /** Live drag selection takes precedence; when not dragging, show persisted selectedRange */
+  const displayRange =
     selection && durationSeconds > 0
-      ? (() => {
-          const rangeStartSeconds = Math.max(
+      ? {
+          startSeconds: Math.max(
             0,
             Math.min(selection.dragStartSeconds, selection.dragEndSeconds)
-          );
-          const rangeEndSeconds = Math.min(
+          ),
+          endSeconds: Math.min(
             durationSeconds,
             Math.max(selection.dragStartSeconds, selection.dragEndSeconds)
-          );
-          return {
-            rangeStartSeconds,
-            rangeEndSeconds,
-            left: `${(rangeStartSeconds / durationSeconds) * 100}%`,
-            width: `${((rangeEndSeconds - rangeStartSeconds) / durationSeconds) * 100}%`
-          };
-        })()
+          )
+        }
+      : selectedRange && durationSeconds > 0
+        ? {
+            startSeconds: Math.max(0, selectedRange.startSeconds),
+            endSeconds: Math.min(durationSeconds, selectedRange.endSeconds)
+          }
+        : null;
+
+  const selectionStyle =
+    displayRange && durationSeconds > 0
+      ? {
+          left: `${(displayRange.startSeconds / durationSeconds) * 100}%`,
+          width: `${((displayRange.endSeconds - displayRange.startSeconds) / durationSeconds) * 100}%`
+        }
       : null;
 
   if (durationSeconds <= 0) {
@@ -162,7 +181,7 @@ export default function TimeBar({
                 inset: 0,
                 left: selectionStyle.left,
                 width: selectionStyle.width,
-                backgroundColor: "rgba(56, 189, 248, 0.28)",
+                backgroundColor: YELLOW_RANGE,
                 zIndex: 7
               }}
               aria-hidden
@@ -265,6 +284,21 @@ export default function TimeBar({
               />
             );
           })}
+          {selectionStyle && (
+            <div
+              style={{
+                position: "absolute",
+                top: 4,
+                bottom: 4,
+                left: selectionStyle.left,
+                width: selectionStyle.width,
+                backgroundColor: YELLOW_RANGE,
+                borderRadius: 9999,
+                zIndex: 6
+              }}
+              aria-hidden
+            />
+          )}
         </div>
         <div
           style={{
@@ -296,12 +330,12 @@ export default function TimeBar({
           }}
           aria-hidden
         />
-        {selection && (
+        {displayRange && (
           <>
             <div
               style={{
                 position: "absolute",
-                left: `${(selection.dragStartSeconds / durationSeconds) * 100}%`,
+                left: `${(displayRange.startSeconds / durationSeconds) * 100}%`,
                 top: -4,
                 transform: "translate(-50%, -100%)",
                 pointerEvents: "none",
@@ -320,13 +354,13 @@ export default function TimeBar({
                   whiteSpace: "nowrap"
                 }}
               >
-                {formatTime(selection.dragStartSeconds)}
+                {formatTime(displayRange.startSeconds)}
               </span>
             </div>
             <div
               style={{
                 position: "absolute",
-                left: `${(selection.dragEndSeconds / durationSeconds) * 100}%`,
+                left: `${(displayRange.endSeconds / durationSeconds) * 100}%`,
                 top: -4,
                 transform: "translate(-50%, -100%)",
                 pointerEvents: "none",
@@ -345,7 +379,7 @@ export default function TimeBar({
                   whiteSpace: "nowrap"
                 }}
               >
-                {formatTime(selection.dragEndSeconds)}
+                {formatTime(displayRange.endSeconds)}
               </span>
             </div>
           </>
