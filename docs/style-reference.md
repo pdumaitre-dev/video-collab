@@ -105,7 +105,7 @@ surface-page (deepest)
 ### Comment Form
 
 - Card-style container: `bg-surface-card`, `rounded-lg`, `p-4`.
-- Header: "New comment on range" with range badge when selected, or hint when not.
+- Header: "Add comment on range" with range inline (e.g. `0:00 – 1:30`) when selected.
 - Textarea: `bg-surface-page`, `border-white/[0.08]`, `focus:border-accent`.
 - Submit: `bg-accent`, white text, disabled state with `opacity-50`.
 

@@ -88,9 +88,11 @@ export default function TimeBar({
         durationSeconds,
         Math.max(dragStartSecondsRef.current, dragEndSeconds)
       );
-      setSelection(null);
       if (rangeEndSeconds - rangeStartSeconds >= 0.1) {
         onRangeSelected(rangeStartSeconds, rangeEndSeconds, dragEndSeconds);
+        setSelection({ dragStartSeconds: rangeStartSeconds, dragEndSeconds: rangeEndSeconds });
+      } else {
+        setSelection(null);
       }
     };
 
@@ -132,18 +134,6 @@ export default function TimeBar({
 
   return (
     <div className="space-y-1">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          fontSize: 11,
-          fontFamily: "monospace",
-          color: "#94a3b8"
-        }}
-      >
-        <span>Current: {formatTime(currentTime)}</span>
-        <span>Duration: {formatTime(durationSeconds)}</span>
-      </div>
       <div
         ref={timelineRef}
         style={{
@@ -375,21 +365,6 @@ export default function TimeBar({
           aria-hidden
         />
       </div>
-      {selection && (
-        <p
-          style={{
-            fontSize: 11,
-            fontFamily: "monospace",
-            color: "#38bdf8"
-          }}
-        >
-          Selected: {formatTime(Math.min(selection.dragStartSeconds, selection.dragEndSeconds))} –{" "}
-          {formatTime(Math.max(selection.dragStartSeconds, selection.dragEndSeconds))}
-        </p>
-      )}
-      <p className="text-xs text-slate-500">
-        Click or drag on the ruler or time bar to seek and select a range for a comment.
-      </p>
     </div>
   );
 }
