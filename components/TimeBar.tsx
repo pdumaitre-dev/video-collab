@@ -343,15 +343,13 @@ export default function TimeBar({
             {formatTime(currentTime)}
           </div>
         )}
-        {selectionStyle && (
+        {selection && (
           <div
             style={{
               position: "absolute",
-              left: selectionStyle.left,
-              top: 8,
-              width: selectionStyle.width,
-              display: "flex",
-              justifyContent: "center",
+              left: `${(selection.dragStartSeconds / durationSeconds) * 100}%`,
+              top: 19,
+              transform: "translate(-50%, -100%)",
               pointerEvents: "none",
               zIndex: 8
             }}
@@ -366,8 +364,7 @@ export default function TimeBar({
                 padding: "0 6px"
               }}
             >
-              {formatTime(selectionStyle.rangeStartSeconds)} –{" "}
-              {formatTime(selectionStyle.rangeEndSeconds)}
+              {formatTime(selection.dragStartSeconds)}
             </span>
           </div>
         )}
