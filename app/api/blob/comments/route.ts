@@ -139,3 +139,50 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  let body: unknown;
+
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { id, pathname } = body as {
+    id?: number;
+    pathname?: string;
+  };
+
+  if (!Number.isInteger(id) || (id ?? 0) <= 0) {
+    return NextResponse.json(
+      { error: "id must be a positive integer" },
+      { status: 400 }
+    );
+  }
+
+  if (!pathname || typeof pathname !== "string" || !pathname.trim()) {
+    return NextResponse.json(
+      { error: "pathname is required" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const deleted = await prisma.comment_blob.deleteMany({
+      where: { id, pathname: pathname.trim() }
+    });
+
+    if (deleted.count === 0) {
+      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting blob comment", error);
+    return NextResponse.json(
+      { error: "Failed to delete comment" },
+      { status: 500 }
+    );
+  }
+}

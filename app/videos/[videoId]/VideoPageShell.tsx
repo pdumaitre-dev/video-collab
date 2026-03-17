@@ -27,17 +27,22 @@ export type PersistCommentFn = (
   text: string
 ) => Promise<CommentData>;
 
+export type DeleteCommentFn = (commentId: number) => Promise<void>;
+
 interface VideoPageShellProps {
   video: VideoForClient;
   initialComments: CommentData[];
   /** Persists comments (e.g. to blob storage or localStorage) */
   persistComment: PersistCommentFn;
+  /** Deletes a comment by id from storage */
+  deleteComment: DeleteCommentFn;
 }
 
 export default function VideoPageShell({
   video,
   initialComments,
-  persistComment
+  persistComment,
+  deleteComment
 }: VideoPageShellProps) {
   const [comments, setComments] = React.useState<CommentData[]>(initialComments);
 
@@ -60,6 +65,9 @@ export default function VideoPageShell({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
+  const [deletingCommentId, setDeletingCommentId] = React.useState<number | null>(
+    null
+  );
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   React.useEffect(() => {
@@ -127,6 +135,19 @@ export default function VideoPageShell({
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    setDeletingCommentId(commentId);
+    try {
+      await deleteComment(commentId);
+      setComments((prev) => prev.filter((comment) => comment.id !== commentId));
+      setSelectedCommentId((prev) => (prev === commentId ? null : prev));
+    } catch (error) {
+      console.error("Failed to delete comment", error);
+    } finally {
+      setDeletingCommentId(null);
     }
   };
 
@@ -215,6 +236,8 @@ export default function VideoPageShell({
           comments={comments}
           selectedCommentId={selectedCommentId}
           onSelect={handleSelectComment}
+          onDelete={handleDeleteComment}
+          deletingCommentId={deletingCommentId}
         />
       </div>
     </div>

@@ -14,12 +14,16 @@ interface CommentListProps {
   comments: CommentData[];
   selectedCommentId: number | null;
   onSelect: (commentId: number) => void;
+  onDelete: (commentId: number) => Promise<void> | void;
+  deletingCommentId: number | null;
 }
 
 export default function CommentList({
   comments,
   selectedCommentId,
-  onSelect
+  onSelect,
+  onDelete,
+  deletingCommentId
 }: CommentListProps) {
   if (comments.length === 0) {
     return (
@@ -55,6 +59,20 @@ export default function CommentList({
               <span>{formatDateTime(c.createdAt)}</span>
             </div>
             <p className="text-fg-primary leading-relaxed">{c.text}</p>
+            <div className="mt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void onDelete(c.id);
+                }}
+                disabled={deletingCommentId === c.id}
+                className="rounded-md border border-white/[0.12] px-2 py-1 text-xs text-fg-secondary transition-colors hover:bg-surface-elevated hover:text-fg-primary disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Delete comment"
+              >
+                {deletingCommentId === c.id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
           </li>
         );
       })}

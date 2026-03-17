@@ -16,7 +16,7 @@ flowchart LR
 1. `app/page.tsx` and `app/videos/page.tsx` list video files from the Blob `videos/` prefix.
 2. `app/api/blob/upload/route.ts` uploads a file to Blob and creates a `Video` row with a generated `publicId`.
 3. `app/videos/[videoId]/page.tsx` resolves `videoId` as either a stored `publicId` or a raw pathname, then opens the player.
-4. `app/videos/watch/[filename]/FileVideoPageShell.tsx` loads and creates comments through `app/api/blob/comments/route.ts`.
+4. `app/videos/watch/[filename]/FileVideoPageShell.tsx` loads, creates, and deletes comments through `app/api/blob/comments/route.ts`.
 
 ## Important Files
 
@@ -25,7 +25,7 @@ flowchart LR
 - `components/VideoPlayer.tsx`: wraps `<video>` and handles the private-blob preload workaround.
 - `components/TimeBar.tsx`: combined timeline UI (ruler + time bar), seek cursor, and drag range selection.
 - `app/api/blob/upload/route.ts`: Blob upload plus `Video` record creation.
-- `app/api/blob/comments/route.ts`: pathname-keyed comment read/write API.
+- `app/api/blob/comments/route.ts`: pathname-keyed comment read/create/delete API.
 - `app/api/blob/stream/route.ts`: playback proxy for private Blob mode.
 - `lib/blob.ts`: Blob listing, metadata, and playback URL helpers.
 - `lib/video-upload.ts`: file validation, size limit, pathname building, and public ID helpers.
