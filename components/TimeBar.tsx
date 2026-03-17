@@ -265,21 +265,6 @@ export default function TimeBar({
               />
             );
           })}
-          {selectionStyle && (
-            <div
-              style={{
-                position: "absolute",
-                top: 2,
-                bottom: 2,
-                left: selectionStyle.left,
-                width: selectionStyle.width,
-                backgroundColor: "rgba(56, 189, 248, 0.7)",
-                borderRadius: 9999,
-                zIndex: 10
-              }}
-              aria-hidden
-            />
-          )}
         </div>
         <div
           style={{
@@ -312,51 +297,58 @@ export default function TimeBar({
           aria-hidden
         />
         {selection && (
-          <div
-            style={{
-              position: "absolute",
-              left: `${cursorOffsetPercent}%`,
-              top: 8,
-              transform: "translateX(-50%)",
-              fontSize: 11,
-              fontFamily: "monospace",
-              color: "#fde68a",
-              backgroundColor: "rgba(15, 23, 42, 0.9)",
-              border: "1px solid rgba(253, 230, 138, 0.8)",
-              borderRadius: 9999,
-              padding: "1px 6px",
-              zIndex: 22,
-              pointerEvents: "none",
-              whiteSpace: "nowrap"
-            }}
-          >
-            {formatTime(currentTime)}
-          </div>
-        )}
-        {selection && (
-          <div
-            style={{
-              position: "absolute",
-              left: `${(selection.dragStartSeconds / durationSeconds) * 100}%`,
-              top: 19,
-              transform: "translate(-50%, -100%)",
-              pointerEvents: "none",
-              zIndex: 8
-            }}
-          >
-            <span
+          <>
+            <div
               style={{
-                fontSize: 10,
-                fontFamily: "monospace",
-                color: "#38bdf8",
-                backgroundColor: "rgba(15, 23, 42, 0.85)",
-                borderRadius: 9999,
-                padding: "0 6px"
+                position: "absolute",
+                left: `${(selection.dragStartSeconds / durationSeconds) * 100}%`,
+                top: -4,
+                transform: "translate(-50%, -100%)",
+                pointerEvents: "none",
+                zIndex: 8
               }}
             >
-              {formatTime(selection.dragStartSeconds)}
-            </span>
-          </div>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontFamily: "monospace",
+                  color: "#fde68a",
+                  backgroundColor: "rgba(15, 23, 42, 0.9)",
+                  border: "1px solid rgba(253, 230, 138, 0.8)",
+                  borderRadius: 9999,
+                  padding: "1px 6px",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {formatTime(selection.dragStartSeconds)}
+              </span>
+            </div>
+            <div
+              style={{
+                position: "absolute",
+                left: `${(selection.dragEndSeconds / durationSeconds) * 100}%`,
+                top: -4,
+                transform: "translate(-50%, -100%)",
+                pointerEvents: "none",
+                zIndex: 8
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 11,
+                  fontFamily: "monospace",
+                  color: "#fde68a",
+                  backgroundColor: "rgba(15, 23, 42, 0.9)",
+                  border: "1px solid rgba(253, 230, 138, 0.8)",
+                  borderRadius: 9999,
+                  padding: "1px 6px",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {formatTime(selection.dragEndSeconds)}
+              </span>
+            </div>
+          </>
         )}
         <div
           style={{

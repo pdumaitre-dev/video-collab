@@ -37,19 +37,19 @@ export default function CommentForm({
       onSubmit={handleSubmit}
       className="space-y-3 rounded-lg border border-white/[0.08] bg-surface-card p-4"
     >
-      <div className="text-xs">
-        <span className="font-medium text-fg-primary">
-          Add comment on range
-          {selectedRange && (
+      {selectedRange && (
+        <div className="text-xs">
+          <span className="font-medium text-fg-primary">
+            Add comment on range
             <span className="ml-2 font-mono text-[11px]" style={{ color: "#fde68a" }}>
               {formatTime(selectedRange.startSeconds)} – {formatTime(selectedRange.endSeconds)}
             </span>
-          )}
-        </span>
-      </div>
+          </span>
+        </div>
+      )}
       <textarea
         className="min-h-[80px] w-full rounded-md border border-white/[0.08] bg-surface-page px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-60"
-        placeholder="Add your question or note about this segment..."
+        placeholder={selectedRange ? "Add your comment..." : "Select a time range on the timeline to add a comment."}
         value={text}
         onChange={(e) => setText(e.target.value)}
         disabled={!selectedRange || submitting}

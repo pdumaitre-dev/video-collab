@@ -105,7 +105,7 @@ surface-page (deepest)
 ### Comment Form
 
 - Card-style container: `bg-surface-card`, `rounded-lg`, `p-4`.
-- Header: "Add comment on range" with range inline (e.g. `0:00 – 1:30`) when selected.
+- When no range selected: no header; placeholder "Select a time range on the timeline to add a comment." When selected: header "Add comment on range" with range inline (e.g. `0:00 – 1:30`).
 - Textarea: `bg-surface-page`, `border-white/[0.08]`, `focus:border-accent`.
 - Submit: `bg-accent`, white text, disabled state with `opacity-50`.
 
@@ -130,7 +130,7 @@ surface-page (deepest)
 The following components and UI elements are **out of scope** for style changes:
 
 - **Video player** (`components/VideoPlayer.tsx`): Video surface, loading, error states.
-- **Time bar** (`components/TimeBar.tsx`): Seek bar, range selection, current time, duration.
+- **Time bar** (`components/TimeBar.tsx`): Seek bar, range selection, current time, duration. Drag start/end times use same format as current time (yellow `#fde68a`, monospace, 11px) and sit slightly above the ruler.
 - **Play/pause button**: The control in `VideoPageShell` that toggles playback.
 
 These remain as-is to preserve playback behavior and accessibility.

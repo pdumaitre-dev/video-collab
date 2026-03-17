@@ -186,9 +186,6 @@ export default function VideoPageShell({
             </button>
           </div>
           <div className="space-y-1">
-            <p className="text-[11px] font-medium text-fg-muted">
-              Time bar (seek & select range)
-            </p>
             <TimeBar
               durationSeconds={duration}
               currentTime={currentTime}
