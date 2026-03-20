@@ -37,7 +37,10 @@ function formatTime(totalSeconds: number): string {
   return `${minutes}:${padded}`;
 }
 
-const YELLOW_RANGE = "rgba(253, 230, 138, 0.5)";
+/** Border color for in-progress selection (fill transparent). */
+const YELLOW_RANGE_BORDER = "#fde68a";
+/** Border color for saved comment ranges (fill transparent). */
+const GREEN_RANGE_BORDER = "rgb(16, 185, 129)";
 
 export default function TimeBar({
   durationSeconds,
@@ -181,7 +184,9 @@ export default function TimeBar({
                 inset: 0,
                 left: selectionStyle.left,
                 width: selectionStyle.width,
-                backgroundColor: YELLOW_RANGE,
+                boxSizing: "border-box",
+                backgroundColor: "transparent",
+                border: `2px solid ${YELLOW_RANGE_BORDER}`,
                 zIndex: 7
               }}
               aria-hidden
@@ -276,7 +281,9 @@ export default function TimeBar({
                   bottom: 4,
                   left: `${left}%`,
                   width: `${width}%`,
-                  backgroundColor: "rgba(16, 185, 129, 0.6)",
+                  boxSizing: "border-box",
+                  backgroundColor: "transparent",
+                  border: `2px solid ${GREEN_RANGE_BORDER}`,
                   borderRadius: 9999,
                   zIndex: 5
                 }}
@@ -292,7 +299,9 @@ export default function TimeBar({
                 bottom: 4,
                 left: selectionStyle.left,
                 width: selectionStyle.width,
-                backgroundColor: YELLOW_RANGE,
+                boxSizing: "border-box",
+                backgroundColor: "transparent",
+                border: `2px solid ${YELLOW_RANGE_BORDER}`,
                 borderRadius: 9999,
                 zIndex: 6
               }}
