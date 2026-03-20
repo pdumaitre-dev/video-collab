@@ -186,7 +186,7 @@ export default function TimeBar({
                 width: selectionStyle.width,
                 boxSizing: "border-box",
                 backgroundColor: "transparent",
-                border: `2px solid ${YELLOW_RANGE_BORDER}`,
+                border: `3px solid ${YELLOW_RANGE_BORDER}`,
                 zIndex: 7
               }}
               aria-hidden
@@ -283,7 +283,7 @@ export default function TimeBar({
                   width: `${width}%`,
                   boxSizing: "border-box",
                   backgroundColor: "transparent",
-                  border: `2px solid ${GREEN_RANGE_BORDER}`,
+                  border: `3px solid ${GREEN_RANGE_BORDER}`,
                   borderRadius: 9999,
                   zIndex: 5
                 }}
@@ -301,7 +301,7 @@ export default function TimeBar({
                 width: selectionStyle.width,
                 boxSizing: "border-box",
                 backgroundColor: "transparent",
-                border: `2px solid ${YELLOW_RANGE_BORDER}`,
+                border: `3px solid ${YELLOW_RANGE_BORDER}`,
                 borderRadius: 9999,
                 zIndex: 6
               }}
