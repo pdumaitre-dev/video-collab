@@ -55,6 +55,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - `/videos/upload` uploads a video into Blob and creates a `Video` record with a `publicId`.
 - `/videos/[videoId]` resolves either a stored `publicId` or a raw pathname and opens the annotation UI.
 - Comments for Blob videos are stored in the `Comment_blob` table, keyed by Blob pathname.
+- `/login` and `/register` create a session cookie; `/profile` shows the signed-in account; `/logout` ends the session.
 
 ## Notes
 
