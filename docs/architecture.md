@@ -36,8 +36,17 @@ Current runtime tables in `prisma/schema.prisma`:
 
 - `Video`: display name, `publicId`, Blob `pathname`, Blob `sourceUrl`, and optional metadata.
 - `Comment_blob`: comment ranges keyed by Blob pathname.
+- `User`: email (unique), `passwordHash`, optional `displayName`.
+- `Session`: hashed session token, `userId`, `expiresAt` (cookie-backed sessions).
 
 Current UI behavior uses `Video` and `Comment_blob`. The older `Comment` model is still present in the schema, but the active Blob-backed flow does not read from it.
+
+## Authentication
+
+- Email/password registration and sign-in store users in `User` and issue HttpOnly `session` cookies backed by `Session` rows (`lib/auth-session.ts`).
+- Pages: `/login` (supports `?next=` internal redirect after success), `/register`, `/profile` (requires sign-in; otherwise redirects to `/login?next=/profile`), `/logout` (confirmation + POST sign-out).
+- API routes: `POST /api/auth/login`, `POST /api/auth/register`, `POST /api/auth/logout`, `GET /api/auth/me`.
+- Global nav (`components/SiteHeader.tsx`) links signed-in users to profile and the logout page.
 
 ## Playback Notes
 
