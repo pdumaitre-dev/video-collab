@@ -19,9 +19,42 @@ const originalLoad = moduleLoader._load;
 
 let comments: CommentRecord[] = [];
 let deleteCalls = 0;
+let findManyArgs: unknown[] = [];
+let createCalls: unknown[] = [];
+let availableBlobPathnames: string[] = [];
 
 const prisma = {
   comment_blob: {
+    findMany: async (args: unknown) => {
+      findManyArgs.push(args);
+      const where = args as { where?: { pathname?: string } };
+      return comments
+        .filter((comment) => comment.pathname === where.where?.pathname)
+        .sort(
+          (a, b) =>
+            a.startSeconds - b.startSeconds ||
+            a.createdAt.getTime() - b.createdAt.getTime()
+        );
+    },
+    create: async ({
+      data
+    }: {
+      data: Pick<
+        CommentRecord,
+        "pathname" | "startSeconds" | "endSeconds" | "text"
+      >;
+    }) => {
+      createCalls.push({ data });
+      const now = new Date("2026-05-19T12:00:00.000Z");
+      const created = {
+        id: comments.length + 1,
+        ...data,
+        createdAt: now,
+        updatedAt: now
+      };
+      comments.push(created);
+      return created;
+    },
     findUnique: async ({ where }: { where: { id: number } }) =>
       comments.find((comment) => comment.id === where.id) ?? null,
     delete: async ({ where }: { where: { id: number } }) => {
@@ -46,22 +79,48 @@ moduleLoader._load = function loadMockedModule(
   }
 
   if (request === "@/lib/blob") {
-    return { listVideoBlobs: async () => [] };
+    return {
+      listVideoBlobs: async () =>
+        availableBlobPathnames.map((pathname) => ({ pathname }))
+    };
   }
 
   return originalLoad.call(this, request, parent, isMain);
 };
 
-const { DELETE } = require("./route") as {
+const { DELETE, GET, POST } = require("./route") as {
   DELETE(request: Request): Promise<Response>;
+  GET(request: Request): Promise<Response>;
+  POST(request: Request): Promise<Response>;
 };
 
 function resetComments() {
   deleteCalls = 0;
+  findManyArgs = [];
+  createCalls = [];
+  availableBlobPathnames = [];
   comments = [
     {
       id: 1,
       pathname: "videos/rehearsal.mp4",
+      startSeconds: 2,
+      endSeconds: 5,
+      text: "Keep the shoulder line relaxed.",
+      createdAt: new Date("2026-05-19T10:00:00.000Z"),
+      updatedAt: new Date("2026-05-19T10:00:00.000Z")
+    },
+    {
+      id: 2,
+      pathname: "videos/rehearsal take.mp4",
+      startSeconds: 10,
+      endSeconds: 14,
+      text: "Land through the whole foot.",
+      createdAt: new Date("2026-05-19T10:04:00.000Z"),
+      updatedAt: new Date("2026-05-19T10:04:00.000Z")
+    },
+    {
+      id: 3,
+      pathname: "videos/rehearsal take.mp4",
       startSeconds: 2,
       endSeconds: 5,
       text: "Keep the shoulder line relaxed.",
@@ -78,7 +137,114 @@ async function readJson(response: Response) {
 async function main() {
   resetComments();
 
-  let response = await DELETE(
+  let response = await GET(
+    new Request("http://localhost/api/blob/comments")
+  );
+  assert.equal(response.status, 400);
+  assert.deepEqual(await readJson(response), {
+    error: "pathname query parameter is required"
+  });
+  assert.deepEqual(findManyArgs, []);
+
+  response = await GET(
+    new Request(
+      "http://localhost/api/blob/comments?pathname=videos%2Frehearsal%20take.mp4"
+    )
+  );
+  assert.equal(response.status, 200);
+  assert.deepEqual(findManyArgs, [
+    {
+      where: { pathname: "videos/rehearsal take.mp4" },
+      orderBy: [{ startSeconds: "asc" }, { createdAt: "asc" }]
+    }
+  ]);
+  assert.deepEqual(await readJson(response), [
+    {
+      id: 3,
+      pathname: "videos/rehearsal take.mp4",
+      startSeconds: 2,
+      endSeconds: 5,
+      text: "Keep the shoulder line relaxed.",
+      createdAt: "2026-05-19T10:00:00.000Z",
+      updatedAt: "2026-05-19T10:00:00.000Z"
+    },
+    {
+      id: 2,
+      pathname: "videos/rehearsal take.mp4",
+      startSeconds: 10,
+      endSeconds: 14,
+      text: "Land through the whole foot.",
+      createdAt: "2026-05-19T10:04:00.000Z",
+      updatedAt: "2026-05-19T10:04:00.000Z"
+    }
+  ]);
+
+  resetComments();
+  response = await POST(
+    new Request("http://localhost/api/blob/comments", {
+      method: "POST",
+      body: JSON.stringify({
+        pathname: "videos/rehearsal.mp4",
+        startSeconds: 5,
+        endSeconds: 5,
+        text: "Too short"
+      })
+    })
+  );
+  assert.equal(response.status, 400);
+  assert.deepEqual(await readJson(response), { error: "Invalid time range" });
+  assert.deepEqual(createCalls, []);
+
+  response = await POST(
+    new Request("http://localhost/api/blob/comments", {
+      method: "POST",
+      body: JSON.stringify({
+        pathname: "videos/missing.mp4",
+        startSeconds: 1,
+        endSeconds: 3,
+        text: "Valid but missing blob"
+      })
+    })
+  );
+  assert.equal(response.status, 404);
+  assert.deepEqual(await readJson(response), { error: "Blob video not found" });
+  assert.deepEqual(createCalls, []);
+
+  availableBlobPathnames = ["videos/rehearsal.mp4"];
+  response = await POST(
+    new Request("http://localhost/api/blob/comments", {
+      method: "POST",
+      body: JSON.stringify({
+        pathname: " videos/rehearsal.mp4 ",
+        startSeconds: 1.5,
+        endSeconds: 3.25,
+        text: "  Keep the elbow soft.  "
+      })
+    })
+  );
+  assert.equal(response.status, 201);
+  assert.deepEqual(createCalls, [
+    {
+      data: {
+        pathname: "videos/rehearsal.mp4",
+        startSeconds: 1.5,
+        endSeconds: 3.25,
+        text: "Keep the elbow soft."
+      }
+    }
+  ]);
+  assert.deepEqual(await readJson(response), {
+    id: 4,
+    pathname: "videos/rehearsal.mp4",
+    startSeconds: 1.5,
+    endSeconds: 3.25,
+    text: "Keep the elbow soft.",
+    createdAt: "2026-05-19T12:00:00.000Z",
+    updatedAt: "2026-05-19T12:00:00.000Z"
+  });
+
+  resetComments();
+  response = await DELETE(
     new Request("http://localhost/api/blob/comments")
   );
   assert.equal(response.status, 400);
@@ -118,7 +284,10 @@ async function main() {
   assert.equal(response.status, 200);
   assert.deepEqual(await readJson(response), { success: true });
   assert.equal(deleteCalls, 1);
-  assert.deepEqual(comments, []);
+  assert.deepEqual(
+    comments.map((comment) => comment.id),
+    [2, 3]
+  );
 
   console.log("blob comment route tests ok");
 }
