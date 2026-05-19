@@ -49,6 +49,14 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Tests
+
+```bash
+npm test
+```
+
+Tests use Vitest. API route tests mock Prisma and Vercel Blob calls so they do not require a live database or Blob token.
+
 ## Main Flows
 
 - `/` and `/videos` list video files from the Blob `videos/` prefix.

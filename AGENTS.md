@@ -30,6 +30,7 @@ with open('.env','w') as f:
 Standard commands are in `package.json` scripts — see `README.md` "Getting started" for the full walkthrough. Quick reference:
 
 - **Dev server:** `npm run dev` (port 3000)
+- **Tests:** `npm test`
 - **Lint:** `npm run lint`
 - **Build:** `npm run build`
 - **Prisma generate:** `npx prisma generate`
