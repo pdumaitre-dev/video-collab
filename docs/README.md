@@ -8,6 +8,10 @@ Current docs:
 - `style-reference.md`: UI tokens and layout rules.
 - `design-system-figma.md`: capturing the design system page into Figma.
 
+Testing:
+
+- `npm test`: runs Vitest. Current API route tests mock Prisma and Vercel Blob dependencies.
+
 Files to review or remove:
 
 - `../lib/blob-storage.ts`: appears unused.
