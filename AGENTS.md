@@ -49,3 +49,4 @@ Standard commands are in `package.json` scripts — see `README.md` "Getting sta
 - **Core critical-path smoke test:** `.cursor/skills/core-e2e-smoke-test/SKILL.md`
   - Run this when validating that core video annotation behavior was not regressed.
   - If any smoke-test step fails or is inconclusive, explicitly notify the reviewer with expected vs actual behavior and evidence.
+- **Improve test coverage (demo):** `.cursor/skills/improve-test-coverage/SKILL.md` — short checklist for adding a minimal test where coverage is thin.
