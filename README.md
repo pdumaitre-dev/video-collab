@@ -49,6 +49,12 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Tests
+
+```bash
+npm test
+```
+
 ## Main Flows
 
 - `/` and `/videos` list video files from the Blob `videos/` prefix.
