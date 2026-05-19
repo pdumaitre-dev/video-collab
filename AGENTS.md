@@ -31,6 +31,7 @@ Standard commands are in `package.json` scripts — see `README.md` "Getting sta
 
 - **Dev server:** `npm run dev` (port 3000)
 - **Lint:** `npm run lint`
+- **Tests:** `npm test`
 - **Build:** `npm run build`
 - **Prisma generate:** `npx prisma generate`
 - **Prisma migrate (deploy only):** `npx prisma migrate deploy`
