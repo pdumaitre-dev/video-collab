@@ -1,17 +1,18 @@
 "use client";
 
 import * as React from "react";
+import {
+  formatTime,
+  getDisplayRange,
+  getSelectionStyle,
+  type SelectedRange
+} from "./time-bar-utils";
 
 type CommentRange = {
   id: number;
   startSeconds: number;
   endSeconds: number;
 };
-
-interface SelectedRange {
-  startSeconds: number;
-  endSeconds: number;
-}
 
 interface TimeBarProps {
   durationSeconds: number;
@@ -26,15 +27,6 @@ interface TimeBarProps {
     rangeEndSeconds: number,
     dragEndSeconds: number
   ) => void;
-}
-
-function formatTime(totalSeconds: number): string {
-  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return "0:00";
-  const seconds = Math.floor(totalSeconds);
-  const minutes = Math.floor(seconds / 60);
-  const remaining = seconds % 60;
-  const padded = remaining.toString().padStart(2, "0");
-  return `${minutes}:${padded}`;
 }
 
 /** Border color for in-progress selection (fill transparent). */
@@ -119,32 +111,13 @@ export default function TimeBar({
   const cursorOffsetPercent = playedRatio * 100;
 
   /** Live drag selection takes precedence; when not dragging, show persisted selectedRange */
-  const displayRange =
-    selection && durationSeconds > 0
-      ? {
-          startSeconds: Math.max(
-            0,
-            Math.min(selection.dragStartSeconds, selection.dragEndSeconds)
-          ),
-          endSeconds: Math.min(
-            durationSeconds,
-            Math.max(selection.dragStartSeconds, selection.dragEndSeconds)
-          )
-        }
-      : selectedRange && durationSeconds > 0
-        ? {
-            startSeconds: Math.max(0, selectedRange.startSeconds),
-            endSeconds: Math.min(durationSeconds, selectedRange.endSeconds)
-          }
-        : null;
+  const displayRange = getDisplayRange({
+    durationSeconds,
+    selection,
+    selectedRange
+  });
 
-  const selectionStyle =
-    displayRange && durationSeconds > 0
-      ? {
-          left: `${(displayRange.startSeconds / durationSeconds) * 100}%`,
-          width: `${((displayRange.endSeconds - displayRange.startSeconds) / durationSeconds) * 100}%`
-        }
-      : null;
+  const selectionStyle = getSelectionStyle(displayRange, durationSeconds);
 
   if (durationSeconds <= 0) {
     return (
