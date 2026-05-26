@@ -44,6 +44,15 @@ Standard commands are in `package.json` scripts — see `README.md` "Getting sta
 - **Prisma generate after npm install.** Always run `npx prisma generate` after `npm install` to regenerate the Prisma client in `node_modules`.
 - **Vercel Blob is optional.** The homepage (`/`) lists DB-backed videos; `/videos` lists Blob-stored videos. The app works without `BLOB_READ_WRITE_TOKEN` for DB-backed video flows.
 
+### Neon DB connectivity in Cloud Agent VMs
+
+The Neon pooler endpoint (`ep-wandering-cake-alellsnu-pooler.c-3.eu-central-1.aws.neon.tech:5432`) may be unreachable from Cloud Agent VMs. TCP connects, but the PostgreSQL/TLS handshake fails (server closes the connection before completing). Symptoms:
+- `prisma migrate deploy` fails with `P1001: Can't reach database server`
+- Dynamic pages (`/`, `/videos`, `/videos/[videoId]`) hang indefinitely
+- Static pages (`/videos/upload`, `/design-system`) and API route validation (non-DB paths) work fine
+
+If you encounter this, the app still compiles, lints, builds, and serves static pages/API validation correctly. Only DB-dependent flows are blocked. The `DATABASE_URL` secret itself is valid — the issue is network-level.
+
 ### Skills
 
 - **Core critical-path smoke test:** `.cursor/skills/core-e2e-smoke-test/SKILL.md`

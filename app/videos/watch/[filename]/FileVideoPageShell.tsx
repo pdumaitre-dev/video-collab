@@ -3,7 +3,8 @@
 import * as React from "react";
 import VideoPageShell, {
   type CommentData,
-  type PersistCommentFn
+  type PersistCommentFn,
+  type DeleteCommentFn
 } from "../../[videoId]/VideoPageShell";
 
 const STORAGE_PREFIX = "video-comments:";
@@ -120,6 +121,26 @@ export default function FileVideoPageShell({
     [pathname, sourceUrl]
   );
 
+  const deleteComment: DeleteCommentFn = React.useCallback(
+    async (commentId: number) => {
+      if (pathname) {
+        const res = await fetch(
+          `/api/blob/comments?id=${commentId}`,
+          { method: "DELETE" }
+        );
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? "Failed to delete comment");
+        }
+      } else {
+        const current = loadCommentsFromStorage(sourceUrl);
+        const updated = current.filter((c) => c.id !== commentId);
+        saveCommentsToStorage(sourceUrl, updated);
+      }
+    },
+    [pathname, sourceUrl]
+  );
+
   return (
     <VideoPageShell
       video={{
@@ -129,6 +150,7 @@ export default function FileVideoPageShell({
       }}
       initialComments={initialComments}
       persistComment={persistComment}
+      deleteComment={deleteComment}
     />
   );
 }
