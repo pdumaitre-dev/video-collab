@@ -38,10 +38,11 @@ Standard commands are in `package.json` scripts — see `README.md` "Getting sta
 
 ### Gotchas
 
-- **Node.js 24 required.** The repo enforces `"engines": { "node": ">=24.0.0" }`. Activate via `nvm use 24` (or `nvm install 24` if not yet installed).
+- **Node.js 26 required.** The repo enforces `"engines": { "node": ">=26.0.0" }`. Activate via `nvm use 26` (or `nvm install 26` if not yet installed).
 - **ESLint config required for non-interactive lint.** Without `.eslintrc.json`, `next lint` prompts interactively. The repo includes `.eslintrc.json` with `"extends": "next/core-web-vitals"`.
 - **Remote database.** `DATABASE_URL` points to a Neon cloud PostgreSQL instance — no local PostgreSQL needed.
 - **Prisma generate after npm install.** Always run `npx prisma generate` after `npm install` to regenerate the Prisma client in `node_modules`.
+- **Neon DB uses HTTP adapter.** The cloud agent environment blocks PostgreSQL wire protocol (port 5432). Prisma is configured with `@prisma/adapter-neon` which connects over HTTPS. `prisma migrate deploy` will NOT work in this environment; use the Neon dashboard or a local machine for migrations. The existing migrations are already applied.
 - **Vercel Blob is optional.** The homepage (`/`) lists DB-backed videos; `/videos` lists Blob-stored videos. The app works without `BLOB_READ_WRITE_TOKEN` for DB-backed video flows.
 
 ### Skills
