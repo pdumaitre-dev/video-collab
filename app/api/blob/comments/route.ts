@@ -152,7 +152,7 @@ export async function DELETE(request: Request) {
   }
 
   const id = Number(idParam);
-  if (!Number.isFinite(id) || id <= 0) {
+  if (!Number.isFinite(id) || !Number.isInteger(id) || id <= 0) {
     return NextResponse.json(
       { error: "id must be a positive number" },
       { status: 400 }

@@ -130,9 +130,9 @@ export default function VideoPageShell({
   const handleDeleteComment = async (commentId: number) => {
     await deleteComment(commentId);
     setComments((prev) => prev.filter((c) => c.id !== commentId));
-    if (selectedCommentId === commentId) {
-      setSelectedCommentId(null);
-    }
+    setSelectedCommentId((current) =>
+      current === commentId ? null : current
+    );
   };
 
   const handleSelectComment = (commentId: number) => {

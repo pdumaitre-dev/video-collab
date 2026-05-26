@@ -46,7 +46,7 @@ Standard commands are in `package.json` scripts — see `README.md` "Getting sta
 
 ### Neon DB connectivity in Cloud Agent VMs
 
-The Neon pooler endpoint (`ep-wandering-cake-alellsnu-pooler.c-3.eu-central-1.aws.neon.tech:5432`) may be unreachable from Cloud Agent VMs. TCP connects, but the PostgreSQL/TLS handshake fails (server closes the connection before completing). Symptoms:
+The Neon pooler host derived from `DATABASE_URL` may be unreachable from Cloud Agent VMs. TCP connects, but the PostgreSQL/TLS handshake fails (server closes the connection before completing). Symptoms:
 - `prisma migrate deploy` fails with `P1001: Can't reach database server`
 - Dynamic pages (`/`, `/videos`, `/videos/[videoId]`) hang indefinitely
 - Static pages (`/videos/upload`, `/design-system`) and API route validation (non-DB paths) work fine
