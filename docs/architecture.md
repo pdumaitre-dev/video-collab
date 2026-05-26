@@ -2,14 +2,22 @@
 
 ## Overview
 
-The app is a single Next.js 14 service. It renders the UI, handles uploads and comment APIs, stores video files in Vercel Blob, and stores metadata/comments in PostgreSQL via Prisma.
+The app is a single Next.js 14 service. It renders the UI, handles uploads and comment APIs, stores video files in Vercel Blob, and stores metadata/comments in Neon PostgreSQL via Prisma 6.
 
 ```mermaid
 flowchart LR
   browser[Browser] --> nextApp["Next.jsApp"]
   nextApp --> blobStore["VercelBlob"]
-  nextApp --> postgres["PostgreSQL"]
+  nextApp --> neon["NeonPostgres"]
 ```
+
+## Database connectivity
+
+- **Runtime:** `lib/db.ts` instantiates `PrismaClient` with `@prisma/adapter-neon` (`PrismaNeon`), using `DATABASE_URL` over Neon's HTTP/WebSocket driver. This avoids requiring PostgreSQL wire protocol (port 5432) in restricted environments.
+- **Migrations / CLI:** `prisma/schema.prisma` still reads `DATABASE_URL` for `prisma migrate deploy`, `prisma studio`, etc. Run those from a machine that can reach Neon on the wire (normal local dev is fine).
+- **Requirement:** `DATABASE_URL` must be a Neon connection string (pooled URL recommended for app queries). Local `localhost` Postgres URLs are not supported by the runtime adapter.
+- **Node:** `>=26.0.0` per `package.json` `engines` and `.nvmrc`.
+- **Cloud agents:** `AGENTS.md` (bootstrap checklist), `.cursor/sandbox.json` (outbound allowlist for Neon/Blob/npm), `.env.example`.
 
 ## Main Flow
 
@@ -28,6 +36,7 @@ flowchart LR
 - `app/api/blob/comments/route.ts`: pathname-keyed comment read/write/delete API.
 - `app/api/blob/stream/route.ts`: playback proxy for private Blob mode.
 - `lib/blob.ts`: Blob listing, metadata, and playback URL helpers.
+- `lib/db.ts`: Prisma singleton with Neon HTTP adapter.
 - `lib/video-upload.ts`: file validation, size limit, pathname building, and public ID helpers.
 
 ## Data Model

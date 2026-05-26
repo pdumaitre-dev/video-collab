@@ -1,0 +1,15 @@
+{
+  "type": "workspace_readwrite",
+  "networkPolicy": {
+    "default": "deny",
+    "allow": [
+      "*.mock-jira.test",
+      "mock-jira.test",
+      "*.neon.tech",
+      "blob.vercel-storage.com",
+      "*.blob.vercel-storage.com",
+      "*.public.blob.vercel-storage.com",
+      "registry.npmjs.org"
+    ]
+  }
+}

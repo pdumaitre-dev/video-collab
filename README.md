@@ -1,44 +1,49 @@
 # Video Collab
 
-Next.js 14 app for annotating videos with time-range comments. Videos live in Vercel Blob. Metadata and comments live in PostgreSQL via Prisma.
+Next.js 14 app for annotating videos with time-range comments. Videos live in Vercel Blob. Metadata and comments live in Neon PostgreSQL via Prisma.
 
 ## Stack
 
 - Next.js 14 App Router
 - React 18 + TypeScript
-- Prisma + PostgreSQL
+- Prisma 6 + Neon (`@prisma/adapter-neon`, HTTP transport at runtime)
 - Vercel Blob
 - Tailwind CSS
 
 ## Requirements
 
-- Node.js 24+
-- `DATABASE_URL`
-- `BLOB_READ_WRITE_TOKEN`
+- Node.js 26+ (see `.nvmrc`)
+- `DATABASE_URL` — Neon PostgreSQL connection string (pooled URL recommended)
+- `BLOB_READ_WRITE_TOKEN` — required for Blob upload/list/playback flows
 - Optional: `BLOB_ACCESS=private|public` (`private` by default)
 
 ## Quickstart
 
-1. Install dependencies.
+1. Use Node 26 and install dependencies.
 
 ```bash
+nvm use
 npm install
 ```
 
-2. Set env vars.
+`postinstall` runs `prisma generate` automatically. Use `npm run prisma:generate` if you need to regenerate manually.
+
+2. Set env vars in `.env` (copy from `.env.example`) or inject them in your shell.
 
 ```bash
-DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB?schema=public"
+# Neon dashboard → Connection string (pooled)
+DATABASE_URL="postgresql://USER:PASSWORD@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require"
 BLOB_READ_WRITE_TOKEN="..."
 # optional
 BLOB_ACCESS="private"
 ```
 
-3. Apply Prisma migrations and generate the client.
+The app runtime uses `@prisma/adapter-neon` in `lib/db.ts`. `DATABASE_URL` must be a Neon URL — a local `localhost:5432` Postgres URL will not work.
+
+3. Apply Prisma migrations (on a machine with normal Postgres wire access to Neon).
 
 ```bash
 npx prisma migrate deploy
-npx prisma generate
 ```
 
 4. Start the app.
@@ -61,10 +66,11 @@ Open [http://localhost:3000](http://localhost:3000).
 - Public Blob mode uses direct Blob URLs for playback.
 - Private Blob mode streams through `/api/blob/stream`; the client preloads the file into a blob URL so seeking still works.
 - The older static-file sample flow under `public/videos/` is legacy/manual-test material, not the primary product path.
+- Cursor Cloud agents: follow the ordered bootstrap in `AGENTS.md` (Node 26, env, sandbox network, smoke-test data assumptions).
 
 ## Docs
 
-- `docs/architecture.md`
-- `docs/storage/vercel-blob.md`
+- `docs/architecture.md` — structure, data model, Neon/Prisma connectivity
+- `docs/storage/vercel-blob.md` — Blob setup and playback
 - `docs/video-player-page/external-playback-controls.md`
-
+- `AGENTS.md` — agent/cloud setup and gotchas

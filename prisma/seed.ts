@@ -1,6 +1,9 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+/**
+ * Legacy seed: creates one Video + Comment rows (old schema path).
+ * Does NOT upload Blob files or Comment_blob rows. Not used for smoke tests.
+ * Uses the same Neon adapter as runtime (lib/db.ts).
+ */
+import { prisma } from "../lib/db";
 
 async function main() {
   const existing = await prisma.video.findFirst();
@@ -38,7 +41,7 @@ async function main() {
     ]
   });
 
-  console.log("Seed data created.");
+  console.log("Legacy seed data created (Video + Comment, no Blob).");
 }
 
 main()
@@ -49,4 +52,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-

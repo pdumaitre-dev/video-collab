@@ -25,15 +25,20 @@ Record in your notes which URL you tested.
 ## Preconditions
 
 - No app login is required for this flow.
-- Test data includes multiple videos.
-- Video named **`Nadia 12 mars`** is present.
+- `DATABASE_URL` (Neon) and `BLOB_READ_WRITE_TOKEN` are set; dev server is running.
+- **Shared environment data** (not created by `prisma/seed.ts`):
+  - Multiple videos visible on the listing page (Blob `videos/` prefix + DB metadata).
+  - **Preferred fixture:** a video titled **`Nadia 12 mars`** with existing comments and green timebar ranges.
+  - **Fallback:** if `Nadia 12 mars` is absent, pick any listed video that shows comments and green ranges; note the substitute title in your report.
+
+Cloud agents: see `AGENTS.md` → **Smoke test data** and **Cursor Cloud bootstrap**.
 
 ## Procedure (must run in browser)
 
 1. Open the target application URL.
 2. Go to the video listing page.
 3. Confirm multiple videos are visible.
-4. Open **`Nadia 12 mars`**.
+4. Open the target video (prefer **`Nadia 12 mars`**, or the fallback chosen above).
 5. Wait for the player to load (expected within a few seconds).
 6. Confirm existing comments are visible.
 7. Confirm green ranges are visible on the timebar and align with comment time ranges.
@@ -66,7 +71,8 @@ If anything does not go as planned, notify the reviewer immediately with:
 5. Repro notes:
    - tested URL,
    - browser,
-   - exact interaction sequence.
+   - exact interaction sequence,
+   - video title used (fixture or fallback).
 
 Use this one-line prefix in the report:  
 `SMOKE TEST ALERT: <blocker|major|minor> - <failed step>`
@@ -75,5 +81,6 @@ Use this one-line prefix in the report:
 
 - `Target:` `<url>`
 - `Result:` `PASS` or `FAIL`
-- `Checked:` `videos list`, `Nadia 12 mars load`, `comments`, `green ranges`, `drag cases`
+- `Video:` `<title tested>`
+- `Checked:` `videos list`, `player load`, `comments`, `green ranges`, `drag cases`
 - `Notes:` key observations or alert payload

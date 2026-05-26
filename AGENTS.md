@@ -1,21 +1,25 @@
 # AGENTS.md
 
-## Cursor Cloud specific instructions
+## Overview
 
-### Overview
+Video Annotation MVP — Next.js 14 (App Router) + Prisma 6 + Neon PostgreSQL + Vercel Blob + Tailwind CSS. Single monolithic service on port 3000.
 
-Video Annotation MVP — a Next.js 14 (App Router) + Prisma + PostgreSQL + Tailwind CSS app for annotating videos with time-range comments. Single monolithic service on port 3000.
+Full local setup: `README.md` Quickstart. Env var names: `.env.example`.
 
-### Required secrets (injected as environment variables)
+## Required environment variables
 
-| Secret | Purpose |
+| Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection string (Neon cloud DB) |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token (for cloud-hosted videos) |
+| `DATABASE_URL` | Neon PostgreSQL connection string (pooled URL recommended) |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token — **required** for primary UI (`/` and `/videos` list Blob; upload/playback need it) |
 
-Both are read automatically by Next.js / Prisma from the process environment; no `.env` file is strictly required if secrets are injected, but you can create one for convenience:
+Optional: `BLOB_ACCESS=private|public` (default `private`).
+
+No `.env` file is required if secrets are injected into the process. For a local `.env`:
 
 ```bash
+cp .env.example .env
+# edit .env, or:
 python3 -c "
 import os
 with open('.env','w') as f:
@@ -25,28 +29,54 @@ with open('.env','w') as f:
 "
 ```
 
-### Key commands
-
-Standard commands are in `package.json` scripts — see `README.md` "Getting started" for the full walkthrough. Quick reference:
+## Key commands
 
 - **Dev server:** `npm run dev` (port 3000)
 - **Lint:** `npm run lint`
 - **Build:** `npm run build`
-- **Prisma generate:** `npx prisma generate`
-- **Prisma migrate (deploy only):** `npx prisma migrate deploy`
-- **Seed:** `npx ts-node prisma/seed.ts`
+- **Prisma client:** `npm run prisma:generate` (also runs on `npm install` via `postinstall`)
+- **Migrations (local / CI with wire access):** `npx prisma migrate deploy`
+- **Seed:** `npm run prisma:seed` — legacy `Video` + `Comment` rows only; does **not** create Blob files or smoke-test fixtures (see below)
 
-### Gotchas
+## Cursor Cloud bootstrap (ordered)
 
-- **Node.js 26 required.** The repo enforces `"engines": { "node": ">=26.0.0" }`. Activate via `nvm use 26` (or `nvm install 26` if not yet installed).
-- **ESLint config required for non-interactive lint.** Without `.eslintrc.json`, `next lint` prompts interactively. The repo includes `.eslintrc.json` with `"extends": "next/core-web-vitals"`.
-- **Remote database.** `DATABASE_URL` points to a Neon cloud PostgreSQL instance — no local PostgreSQL needed.
-- **Prisma generate after npm install.** Always run `npx prisma generate` after `npm install` to regenerate the Prisma client in `node_modules`.
-- **Neon DB uses HTTP adapter.** The cloud agent environment blocks PostgreSQL wire protocol (port 5432). Prisma is configured with `@prisma/adapter-neon` which connects over HTTPS. `prisma migrate deploy` will NOT work in this environment; use the Neon dashboard or a local machine for migrations. The existing migrations are already applied.
-- **Vercel Blob is optional.** The homepage (`/`) lists DB-backed videos; `/videos` lists Blob-stored videos. The app works without `BLOB_READ_WRITE_TOKEN` for DB-backed video flows.
+Run this sequence when opening the repo in a cloud agent (secrets already injected):
 
-### Skills
+1. **Node 26** — `node -v` must be `>=26`. Use `nvm use` if `.nvmrc` is honored; otherwise ensure the environment provides Node 26.
+2. **Install** — `npm install` (runs `postinstall` → `prisma generate` automatically).
+3. **Env** — confirm `DATABASE_URL` (Neon, not `localhost`) and `BLOB_READ_WRITE_TOKEN` are set.
+4. **Migrations** — do **not** rely on `prisma migrate deploy` in cloud; the shared Neon DB should already have migrations applied. Run migrations only from local/CI with wire access if you own a fresh database.
+5. **Dev server** — `npm run dev` → http://localhost:3000
+6. **Network** — `.cursor/sandbox.json` must allow Neon and Vercel Blob hosts (see below). If outbound calls fail, widen `networkPolicy.allow` before debugging app code.
+7. **Smoke test** — optional; see `.cursor/skills/core-e2e-smoke-test/SKILL.md` and **Smoke test data** below.
+
+## Cursor Cloud / restricted environments
+
+- **Neon HTTP adapter.** Port 5432 can be blocked; runtime DB uses `@prisma/adapter-neon` in `lib/db.ts` (HTTPS/WebSocket).
+- **`prisma migrate deploy` may fail in cloud.** Use Neon dashboard or a local machine; shared project DB is already migrated.
+- **Blob is required for main flows.** Listing, upload, and playback use Vercel Blob. Empty env → empty video list (errors swallowed on `/`).
+- **Sandbox network.** `.cursor/sandbox.json` defaults to `deny` with an allowlist for Neon (`*.neon.tech`), Vercel Blob (`blob.vercel-storage.com`, `*.blob.vercel-storage.com`), and `registry.npmjs.org`. Add hosts here if install or runtime still cannot reach external services.
+
+## Smoke test data
+
+The core smoke skill (`.cursor/skills/core-e2e-smoke-test/SKILL.md`) expects the **shared** Neon + Blob environment to already contain:
+
+- Multiple videos under the Blob `videos/` prefix
+- Prefer the canonical fixture **`Nadia 12 mars`** (comments + green timebar ranges)
+- If that title is missing, use **any** listed video that shows existing comments and green ranges; record the substitute title in the report
+
+`prisma/seed.ts` does not create Blob objects or `Comment_blob` rows — do not use seed to satisfy smoke preconditions.
+
+## Local development
+
+- **Node.js 26 required.** `"engines": { "node": ">=26.0.0" }`. Run `nvm use` (`.nvmrc` → 26) or `nvm install 26`.
+- **After pulling infra changes:** `npm install` (regenerates Prisma client via `postinstall`).
+- **Neon only at runtime.** `DATABASE_URL` must be from the Neon dashboard, not `localhost`.
+- **No local PostgreSQL.** Use the remote Neon instance.
+- **ESLint:** `.eslintrc.json` extends `next/core-web-vitals` so `npm run lint` stays non-interactive.
+
+## Skills
 
 - **Core critical-path smoke test:** `.cursor/skills/core-e2e-smoke-test/SKILL.md`
-  - Run this when validating that core video annotation behavior was not regressed.
-  - If any smoke-test step fails or is inconclusive, explicitly notify the reviewer with expected vs actual behavior and evidence.
+  - Run when validating core video annotation behavior.
+  - On failure, report expected vs actual behavior with evidence.

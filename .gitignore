@@ -18,6 +18,7 @@ yarn-error.log*
 !.cursor/rules/*.mdc
 !.cursor/skills/
 !.cursor/skills/**
+!.cursor/sandbox.json
 
 .vercel
 .env*.local

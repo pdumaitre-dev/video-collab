@@ -1,9 +1,10 @@
 # Vercel Blob
 
-Videos are stored in Vercel Blob under the `videos/` prefix. The database stores metadata and comments, not the video bytes.
+Videos are stored in Vercel Blob under the `videos/` prefix. Neon PostgreSQL (via Prisma in `lib/db.ts`) stores metadata and comments, not the video bytes.
 
 ## Required Env
 
+- `DATABASE_URL` — Neon connection string (see `architecture.md` and root `README.md`)
 - `BLOB_READ_WRITE_TOKEN`
 - Optional: `BLOB_ACCESS=private|public`
 
