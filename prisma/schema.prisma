@@ -8,15 +8,15 @@ datasource db {
 }
 
 model Video {
-  id              Int       @id @default(autoincrement())
+  id              Int      @id @default(autoincrement())
   title           String
   name            String
-  publicId        String    @unique
+  publicId        String   @unique
   description     String?
   sourceUrl       String
-  pathname        String?   @unique
+  pathname        String?  @unique
   durationSeconds Float?
-  createdAt       DateTime  @default(now())
+  createdAt       DateTime @default(now())
 
   comments Comment[]
 }
@@ -33,14 +33,17 @@ model Comment {
 }
 
 model Comment_blob {
-  id           Int      @id @default(autoincrement())
-  pathname     String   // Blob pathname, e.g. "videos/sample.mp4"
+  id           Int            @id @default(autoincrement())
+  pathname     String // Blob pathname, e.g. "videos/sample.mp4"
   startSeconds Float
   endSeconds   Float
   text         String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  parentId     Int?
+  parent       Comment_blob?  @relation("CommentBlobReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      Comment_blob[] @relation("CommentBlobReplies")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   @@index([pathname])
+  @@index([parentId])
 }
-

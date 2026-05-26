@@ -16,7 +16,7 @@ flowchart LR
 1. `app/page.tsx` and `app/videos/page.tsx` list video files from the Blob `videos/` prefix.
 2. `app/api/blob/upload/route.ts` uploads a file to Blob and creates a `Video` row with a generated `publicId`.
 3. `app/videos/[videoId]/page.tsx` resolves `videoId` as either a stored `publicId` or a raw pathname, then opens the player.
-4. `app/videos/watch/[filename]/FileVideoPageShell.tsx` loads and creates comments through `app/api/blob/comments/route.ts`.
+4. `app/videos/watch/[filename]/FileVideoPageShell.tsx` loads and creates threaded comments through `app/api/blob/comments/route.ts`.
 
 ## Important Files
 
@@ -35,9 +35,9 @@ flowchart LR
 Current runtime tables in `prisma/schema.prisma`:
 
 - `Video`: display name, `publicId`, Blob `pathname`, Blob `sourceUrl`, and optional metadata.
-- `Comment_blob`: comment ranges keyed by Blob pathname.
+- `Comment_blob`: comment ranges keyed by Blob pathname. Replies use nullable `parentId` and inherit the parent range.
 
-Current UI behavior uses `Video` and `Comment_blob`. The older `Comment` model is still present in the schema, but the active Blob-backed flow does not read from it.
+Current UI behavior uses `Video` and `Comment_blob`. The Blob comment API returns top-level comments with nested `replies`; the timeline renders markers only for top-level comments. The older `Comment` model is still present in the schema, but the active Blob-backed flow does not read from it.
 
 ## Playback Notes
 

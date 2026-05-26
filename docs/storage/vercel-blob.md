@@ -44,6 +44,9 @@ Videos are stored in Vercel Blob under the `videos/` prefix. The database stores
 - `POST /api/blob/comments`
 - `DELETE /api/blob/comments?id=<commentId>`
 - Comments are stored in `Comment_blob`, keyed by Blob pathname.
+- `POST` accepts optional `parentId`; replies inherit the parent comment's `startSeconds` and `endSeconds`.
+- `GET` returns a nested tree sorted by top-level range time and `createdAt`. Each comment includes `replies`.
+- `DELETE` removes the selected comment and its reply subtree.
 
 ## Private Playback Tradeoff
 
