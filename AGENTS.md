@@ -42,7 +42,7 @@ with open('.env','w') as f:
 
 Run this sequence when opening the repo in a cloud agent (secrets already injected):
 
-1. **Node 26** — `node -v` must be `>=26`. Use `nvm use` if `.nvmrc` is honored; otherwise ensure the environment provides Node 26.
+1. **Node 24** — `node -v` must match `24.x`. Use `nvm use` if `.nvmrc` is honored; otherwise ensure the environment provides Node 24.
 2. **Install** — `npm install` (runs `postinstall` → `prisma generate` automatically).
 3. **Env** — confirm `DATABASE_URL` (Neon, not `localhost`) and `BLOB_READ_WRITE_TOKEN` are set.
 4. **Migrations** — do **not** rely on `prisma migrate deploy` in cloud; the shared Neon DB should already have migrations applied. Run migrations only from local/CI with wire access if you own a fresh database.
@@ -69,7 +69,7 @@ The core smoke skill (`.cursor/skills/core-e2e-smoke-test/SKILL.md`) expects the
 
 ## Local development
 
-- **Node.js 26 required.** `"engines": { "node": ">=26.0.0" }`. Run `nvm use` (`.nvmrc` → 26) or `nvm install 26`.
+- **Node.js 24 required.** `"engines": { "node": "24.x" }` (matches Vercel deployment runtime). Run `nvm use` (`.nvmrc` → 24) or `nvm install 24`.
 - **After pulling infra changes:** `npm install` (regenerates Prisma client via `postinstall`).
 - **Neon only at runtime.** `DATABASE_URL` must be from the Neon dashboard, not `localhost`.
 - **No local PostgreSQL.** Use the remote Neon instance.

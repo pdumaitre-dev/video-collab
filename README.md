@@ -12,14 +12,14 @@ Next.js 14 app for annotating videos with time-range comments. Videos live in Ve
 
 ## Requirements
 
-- Node.js 26+ (see `.nvmrc`)
+- Node.js 24+ (see `.nvmrc`; Vercel deployments use Node 24.x)
 - `DATABASE_URL` — Neon PostgreSQL connection string (pooled URL recommended)
 - `BLOB_READ_WRITE_TOKEN` — required for Blob upload/list/playback flows
 - Optional: `BLOB_ACCESS=private|public` (`private` by default)
 
 ## Quickstart
 
-1. Use Node 26 and install dependencies.
+1. Use Node 24 and install dependencies.
 
 ```bash
 nvm use
@@ -66,7 +66,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - Public Blob mode uses direct Blob URLs for playback.
 - Private Blob mode streams through `/api/blob/stream`; the client preloads the file into a blob URL so seeking still works.
 - The older static-file sample flow under `public/videos/` is legacy/manual-test material, not the primary product path.
-- Cursor Cloud agents: follow the ordered bootstrap in `AGENTS.md` (Node 26, env, sandbox network, smoke-test data assumptions).
+- Cursor Cloud agents: follow the ordered bootstrap in `AGENTS.md` (Node 24, env, sandbox network, smoke-test data assumptions).
 
 ## Docs
 

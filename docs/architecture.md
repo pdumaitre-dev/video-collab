@@ -16,7 +16,7 @@ flowchart LR
 - **Runtime:** `lib/db.ts` instantiates `PrismaClient` with `@prisma/adapter-neon` (`PrismaNeon`), using `DATABASE_URL` over Neon's HTTP/WebSocket driver. This avoids requiring PostgreSQL wire protocol (port 5432) in restricted environments.
 - **Migrations / CLI:** `prisma/schema.prisma` still reads `DATABASE_URL` for `prisma migrate deploy`, `prisma studio`, etc. Run those from a machine that can reach Neon on the wire (normal local dev is fine).
 - **Requirement:** `DATABASE_URL` must be a Neon connection string (pooled URL recommended for app queries). Local `localhost` Postgres URLs are not supported by the runtime adapter.
-- **Node:** `>=26.0.0` per `package.json` `engines` and `.nvmrc`.
+- **Node:** `24.x` per `package.json` `engines` and `.nvmrc` (Vercel builds/functions support 20.x–24.x; Node 26 is not available for standard deployments).
 - **Cloud agents:** `AGENTS.md` (bootstrap checklist), `.cursor/sandbox.json` (outbound allowlist for Neon/Blob/npm), `.env.example`.
 
 ## Main Flow
