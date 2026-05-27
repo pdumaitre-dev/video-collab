@@ -9,13 +9,33 @@ import VideoPageShell, {
 
 const STORAGE_PREFIX = "video-comments:";
 
+function normalizeComment(comment: Partial<CommentData>): CommentData {
+  return {
+    id: typeof comment.id === "number" ? comment.id : Date.now(),
+    parentId:
+      typeof comment.parentId === "number" ? comment.parentId : null,
+    startSeconds:
+      typeof comment.startSeconds === "number" ? comment.startSeconds : 0,
+    endSeconds:
+      typeof comment.endSeconds === "number" ? comment.endSeconds : 0,
+    text: typeof comment.text === "string" ? comment.text : "",
+    createdAt:
+      typeof comment.createdAt === "string"
+        ? comment.createdAt
+        : new Date().toISOString(),
+    replies: Array.isArray(comment.replies)
+      ? comment.replies.map((reply) => normalizeComment(reply))
+      : []
+  };
+}
+
 function loadCommentsFromStorage(sourceUrl: string): CommentData[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_PREFIX + sourceUrl);
     if (!raw) return [];
-    const parsed = JSON.parse(raw) as CommentData[];
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(raw) as Partial<CommentData>[];
+    return Array.isArray(parsed) ? parsed.map(normalizeComment) : [];
   } catch {
     return [];
   }
@@ -51,16 +71,8 @@ export default function FileVideoPageShell({
         `/api/blob/comments?pathname=${encodeURIComponent(pathname)}`
       )
         .then((res) => (res.ok ? res.json() : []))
-        .then((data: Array<{ id: number; startSeconds: number; endSeconds: number; text: string; createdAt: string }>) => {
-          setInitialComments(
-            data.map((c) => ({
-              id: c.id,
-              startSeconds: c.startSeconds,
-              endSeconds: c.endSeconds,
-              text: c.text,
-              createdAt: c.createdAt
-            }))
-          );
+        .then((data: Partial<CommentData>[]) => {
+          setInitialComments(data.map(normalizeComment));
         })
         .catch(() => setInitialComments([]));
     } else {
@@ -69,13 +81,14 @@ export default function FileVideoPageShell({
   }, [pathname, sourceUrl]);
 
   const persistComment: PersistCommentFn = React.useCallback(
-    async (range, text) => {
+    async (range, text, parentId = null) => {
       if (pathname) {
         const res = await fetch("/api/blob/comments", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             pathname,
+            parentId,
             startSeconds: range.startSeconds,
             endSeconds: range.endSeconds,
             text
@@ -87,34 +100,22 @@ export default function FileVideoPageShell({
           throw new Error(err.error ?? "Failed to create comment");
         }
 
-        const created = (await res.json()) as {
-          id: number;
-          startSeconds: number;
-          endSeconds: number;
-          text: string;
-          createdAt: string;
-        };
+        const created = (await res.json()) as Partial<CommentData>;
 
-        return {
-          id: created.id,
-          startSeconds: created.startSeconds,
-          endSeconds: created.endSeconds,
-          text: created.text,
-          createdAt: created.createdAt
-        };
+        return normalizeComment(created);
       }
 
       const current = loadCommentsFromStorage(sourceUrl);
       const newComment: CommentData = {
         id: Date.now(),
+        parentId,
         startSeconds: range.startSeconds,
         endSeconds: range.endSeconds,
         text,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        replies: []
       };
-      const updated = [...current, newComment].sort(
-        (a, b) => a.startSeconds - b.startSeconds
-      );
+      const updated = insertCommentIntoTree(current, newComment);
       saveCommentsToStorage(sourceUrl, updated);
       return newComment;
     },
@@ -134,7 +135,7 @@ export default function FileVideoPageShell({
         }
       } else {
         const current = loadCommentsFromStorage(sourceUrl);
-        const updated = current.filter((c) => c.id !== commentId);
+        const updated = removeCommentFromTree(current, commentId);
         saveCommentsToStorage(sourceUrl, updated);
       }
     },
@@ -153,4 +154,56 @@ export default function FileVideoPageShell({
       deleteComment={deleteComment}
     />
   );
+}
+
+function compareComments(a: CommentData, b: CommentData) {
+  return (
+    a.startSeconds - b.startSeconds ||
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() ||
+    a.id - b.id
+  );
+}
+
+function sortCommentTree(comments: CommentData[]): CommentData[] {
+  return comments
+    .map((comment) => ({
+      ...comment,
+      replies: sortCommentTree(comment.replies)
+    }))
+    .sort(compareComments);
+}
+
+function insertCommentIntoTree(
+  comments: CommentData[],
+  created: CommentData
+): CommentData[] {
+  if (created.parentId === null) {
+    return sortCommentTree([...comments, created]);
+  }
+
+  return comments.map((comment) => {
+    if (comment.id === created.parentId) {
+      return {
+        ...comment,
+        replies: sortCommentTree([...comment.replies, created])
+      };
+    }
+
+    return {
+      ...comment,
+      replies: insertCommentIntoTree(comment.replies, created)
+    };
+  });
+}
+
+function removeCommentFromTree(
+  comments: CommentData[],
+  commentId: number
+): CommentData[] {
+  return comments
+    .filter((comment) => comment.id !== commentId)
+    .map((comment) => ({
+      ...comment,
+      replies: removeCommentFromTree(comment.replies, commentId)
+    }));
 }

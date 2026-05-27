@@ -8,10 +8,12 @@ import CommentForm from "@/components/CommentForm";
 
 export type CommentData = {
   id: number;
+  parentId: number | null;
   startSeconds: number;
   endSeconds: number;
   text: string;
   createdAt: string;
+  replies: CommentData[];
 };
 
 export interface VideoForClient {
@@ -24,7 +26,8 @@ export interface VideoForClient {
 
 export type PersistCommentFn = (
   range: { startSeconds: number; endSeconds: number },
-  text: string
+  text: string,
+  parentId?: number | null
 ) => Promise<CommentData>;
 
 export type DeleteCommentFn = (commentId: number) => Promise<void>;
@@ -48,9 +51,7 @@ export default function VideoPageShell({
 
   // Sync when parent loads comments after mount (e.g. FileVideoPageShell loading from localStorage)
   React.useEffect(() => {
-    if (initialComments.length > 0) {
-      setComments(initialComments);
-    }
+    setComments(sortCommentTree(initialComments));
   }, [initialComments]);
 
   const [currentTime, setCurrentTime] = React.useState(0);
@@ -122,14 +123,32 @@ export default function VideoPageShell({
       text
     );
     setComments((prev) =>
-      [...prev, created].sort((a, b) => a.startSeconds - b.startSeconds)
+      insertCommentIntoTree(prev, ensureCommentTree(created))
     );
     setSelectedRange(null);
   };
 
+  const handleNewReply = async (parentId: number, text: string) => {
+    const parent = findCommentById(comments, parentId);
+    if (!parent) return;
+
+    const created = await persistComment(
+      {
+        startSeconds: parent.startSeconds,
+        endSeconds: parent.endSeconds
+      },
+      text,
+      parentId
+    );
+
+    setComments((prev) =>
+      insertCommentIntoTree(prev, ensureCommentTree(created))
+    );
+  };
+
   const handleDeleteComment = async (commentId: number) => {
     await deleteComment(commentId);
-    setComments((prev) => prev.filter((c) => c.id !== commentId));
+    setComments((prev) => removeCommentFromTree(prev, commentId));
     if (selectedCommentId === commentId) {
       setSelectedCommentId(null);
     }
@@ -137,11 +156,16 @@ export default function VideoPageShell({
 
   const handleSelectComment = (commentId: number) => {
     setSelectedCommentId(commentId);
-    const comment = comments.find((c) => c.id === commentId);
+    const comment = findCommentById(comments, commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
     }
   };
+
+  const topLevelComments = React.useMemo(
+    () => comments.filter((comment) => comment.parentId === null),
+    [comments]
+  );
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)]">
@@ -202,7 +226,7 @@ export default function VideoPageShell({
             <TimeBar
               durationSeconds={duration}
               currentTime={currentTime}
-              comments={comments}
+              comments={topLevelComments}
               selectedRange={selectedRange}
               onSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
@@ -228,9 +252,80 @@ export default function VideoPageShell({
           comments={comments}
           selectedCommentId={selectedCommentId}
           onSelect={handleSelectComment}
+          onReply={handleNewReply}
           onDelete={handleDeleteComment}
         />
       </div>
     </div>
   );
+}
+
+function ensureCommentTree(comment: CommentData): CommentData {
+  return {
+    ...comment,
+    parentId: comment.parentId ?? null,
+    replies: sortCommentTree(comment.replies ?? [])
+  };
+}
+
+function compareComments(a: CommentData, b: CommentData) {
+  return (
+    a.startSeconds - b.startSeconds ||
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() ||
+    a.id - b.id
+  );
+}
+
+function sortCommentTree(comments: CommentData[]): CommentData[] {
+  return comments
+    .map(ensureCommentTree)
+    .sort(compareComments);
+}
+
+function insertCommentIntoTree(
+  comments: CommentData[],
+  created: CommentData
+): CommentData[] {
+  if (created.parentId === null) {
+    return sortCommentTree([...comments, created]);
+  }
+
+  return comments.map((comment) => {
+    if (comment.id === created.parentId) {
+      return {
+        ...comment,
+        replies: sortCommentTree([...comment.replies, created])
+      };
+    }
+
+    return {
+      ...comment,
+      replies: insertCommentIntoTree(comment.replies, created)
+    };
+  });
+}
+
+function removeCommentFromTree(
+  comments: CommentData[],
+  commentId: number
+): CommentData[] {
+  return comments
+    .filter((comment) => comment.id !== commentId)
+    .map((comment) => ({
+      ...comment,
+      replies: removeCommentFromTree(comment.replies, commentId)
+    }));
+}
+
+function findCommentById(
+  comments: CommentData[],
+  commentId: number
+): CommentData | null {
+  for (const comment of comments) {
+    if (comment.id === commentId) return comment;
+    const reply = findCommentById(comment.replies, commentId);
+    if (reply) return reply;
+  }
+
+  return null;
 }

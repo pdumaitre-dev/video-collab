@@ -45,6 +45,9 @@ Videos are stored in Vercel Blob under the `videos/` prefix. Neon PostgreSQL (vi
 - `POST /api/blob/comments`
 - `DELETE /api/blob/comments?id=<commentId>`
 - Comments are stored in `Comment_blob`, keyed by Blob pathname.
+- `POST` accepts optional `parentId`. Top-level comments require `startSeconds` and `endSeconds`; replies inherit the parent comment range.
+- `GET` returns top-level comments sorted by `startSeconds` then `createdAt`, with nested `replies` sorted the same way.
+- Deleting a parent comment cascades to its replies.
 
 ## Private Playback Tradeoff
 
