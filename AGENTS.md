@@ -75,6 +75,17 @@ The core smoke skill (`.cursor/skills/core-e2e-smoke-test/SKILL.md`) expects the
 - **No local PostgreSQL.** Use the remote Neon instance.
 - **ESLint:** `.eslintrc.json` extends `next/core-web-vitals` so `npm run lint` stays non-interactive.
 
+## Cursor Cloud specific instructions
+
+- **Node 24 PATH override required.** `/exec-daemon/node` (v22) shadows nvm. Prepend nvm's Node 24 bin: `export PATH="/home/ubuntu/.nvm/versions/node/v24.16.0/bin:$PATH"` (already persisted in `~/.bashrc` by setup).
+- **Vercel Blob TLS is blocked at runtime.** Despite `blob.vercel-storage.com` being in `.cursor/sandbox.json` allowlist, TLS handshakes are reset. This means:
+  - The homepage (`/`) and `/videos` will hang (they call `listVideoBlobs()`).
+  - The POST `/api/blob/comments` will hang (validates blob existence).
+  - DB-only endpoints (GET/DELETE `/api/blob/comments`) work fine via Neon.
+  - Static pages (`/design-system`, `/videos/upload`) load instantly.
+- **Dev server start:** Use a tmux session or background the process. First page-compile takes ~2s; subsequent requests are fast.
+- **Testing strategy:** Use `curl` against `http://127.0.0.1:3000` for API tests. For pages that call Blob, expect timeouts in this environment. DB-backed API routes are the reliable way to validate Prisma/Neon connectivity.
+
 ## Skills
 
 - **Core critical-path smoke test:** `.cursor/skills/core-e2e-smoke-test/SKILL.md`
