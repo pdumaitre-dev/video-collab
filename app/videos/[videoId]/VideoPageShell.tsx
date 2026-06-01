@@ -300,6 +300,7 @@ export default function VideoPageShell({
               comments={comments}
               selectedRange={selectedRange}
               onSeek={handleTimelineSeek}
+              onSeekPreview={seekTo}
               onRangeSelected={handleRangeSelected}
             />
           </div>
