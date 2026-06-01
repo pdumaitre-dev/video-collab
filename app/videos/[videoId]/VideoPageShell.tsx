@@ -8,10 +8,12 @@ import CommentForm from "@/components/CommentForm";
 
 export type CommentData = {
   id: number;
+  parentId?: number | null;
   startSeconds: number;
   endSeconds: number;
   text: string;
   createdAt: string;
+  replies?: CommentData[];
 };
 
 export interface VideoForClient {
@@ -27,6 +29,8 @@ export type PersistCommentFn = (
   text: string
 ) => Promise<CommentData>;
 
+export type PersistReplyFn = (parentId: number, text: string) => Promise<CommentData>;
+
 export type DeleteCommentFn = (commentId: number) => Promise<void>;
 
 interface VideoPageShellProps {
@@ -34,6 +38,8 @@ interface VideoPageShellProps {
   initialComments: CommentData[];
   /** Persists comments (e.g. to blob storage or localStorage) */
   persistComment: PersistCommentFn;
+  /** Persists threaded replies on an existing comment */
+  persistReply: PersistReplyFn;
   /** Deletes a comment by ID */
   deleteComment: DeleteCommentFn;
 }
@@ -42,15 +48,14 @@ export default function VideoPageShell({
   video,
   initialComments,
   persistComment,
+  persistReply,
   deleteComment
 }: VideoPageShellProps) {
   const [comments, setComments] = React.useState<CommentData[]>(initialComments);
 
   // Sync when parent loads comments after mount (e.g. FileVideoPageShell loading from localStorage)
   React.useEffect(() => {
-    if (initialComments.length > 0) {
-      setComments(initialComments);
-    }
+    setComments(initialComments);
   }, [initialComments]);
 
   const [currentTime, setCurrentTime] = React.useState(0);
@@ -121,15 +126,18 @@ export default function VideoPageShell({
       },
       text
     );
-    setComments((prev) =>
-      [...prev, created].sort((a, b) => a.startSeconds - b.startSeconds)
-    );
+    setComments((prev) => sortComments([...prev, withReplies(created)]));
     setSelectedRange(null);
+  };
+
+  const handleNewReply = async (parentId: number, text: string) => {
+    const created = await persistReply(parentId, text);
+    setComments((prev) => addReplyToTree(prev, parentId, withReplies(created)));
   };
 
   const handleDeleteComment = async (commentId: number) => {
     await deleteComment(commentId);
-    setComments((prev) => prev.filter((c) => c.id !== commentId));
+    setComments((prev) => removeCommentFromTree(prev, commentId));
     if (selectedCommentId === commentId) {
       setSelectedCommentId(null);
     }
@@ -137,11 +145,16 @@ export default function VideoPageShell({
 
   const handleSelectComment = (commentId: number) => {
     setSelectedCommentId(commentId);
-    const comment = comments.find((c) => c.id === commentId);
+    const comment = findComment(comments, commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
     }
   };
+
+  const timelineComments = React.useMemo(
+    () => comments.filter((comment) => !comment.parentId),
+    [comments]
+  );
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)]">
@@ -202,7 +215,7 @@ export default function VideoPageShell({
             <TimeBar
               durationSeconds={duration}
               currentTime={currentTime}
-              comments={comments}
+              comments={timelineComments}
               selectedRange={selectedRange}
               onSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
@@ -229,8 +242,70 @@ export default function VideoPageShell({
           selectedCommentId={selectedCommentId}
           onSelect={handleSelectComment}
           onDelete={handleDeleteComment}
+          onReply={handleNewReply}
         />
       </div>
     </div>
   );
+}
+
+function withReplies(comment: CommentData): CommentData {
+  return {
+    ...comment,
+    replies: sortComments(comment.replies ?? [])
+  };
+}
+
+function sortComments(comments: CommentData[]): CommentData[] {
+  return comments
+    .map(withReplies)
+    .sort(
+      (a, b) =>
+        a.startSeconds - b.startSeconds ||
+        Date.parse(a.createdAt) - Date.parse(b.createdAt)
+    );
+}
+
+function addReplyToTree(
+  comments: CommentData[],
+  parentId: number,
+  reply: CommentData
+): CommentData[] {
+  return comments.map((comment) => {
+    if (comment.id === parentId) {
+      return {
+        ...comment,
+        replies: sortComments([...(comment.replies ?? []), reply])
+      };
+    }
+
+    return {
+      ...comment,
+      replies: addReplyToTree(comment.replies ?? [], parentId, reply)
+    };
+  });
+}
+
+function removeCommentFromTree(
+  comments: CommentData[],
+  commentId: number
+): CommentData[] {
+  return comments
+    .filter((comment) => comment.id !== commentId)
+    .map((comment) => ({
+      ...comment,
+      replies: removeCommentFromTree(comment.replies ?? [], commentId)
+    }));
+}
+
+function findComment(
+  comments: CommentData[],
+  commentId: number
+): CommentData | null {
+  for (const comment of comments) {
+    if (comment.id === commentId) return comment;
+    const nested = findComment(comment.replies ?? [], commentId);
+    if (nested) return nested;
+  }
+  return null;
 }

@@ -44,7 +44,7 @@ flowchart LR
 Current runtime tables in `prisma/schema.prisma`:
 
 - `Video`: display name, `publicId`, Blob `pathname`, Blob `sourceUrl`, and optional metadata.
-- `Comment_blob`: comment ranges keyed by Blob pathname.
+- `Comment_blob`: comment ranges keyed by Blob pathname. Optional `parentId` creates threaded replies; replies store the same `startSeconds` / `endSeconds` as their parent so the timeline can show one marker per top-level range.
 
 Current UI behavior uses `Video` and `Comment_blob`. The older `Comment` model is still present in the schema, but the active Blob-backed flow does not read from it.
 
