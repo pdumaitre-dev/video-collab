@@ -20,6 +20,17 @@ interface CommentListProps {
   onReply?: (parentId: number, text: string) => Promise<void> | void;
 }
 
+function collectExpandableIds(comments: CommentData[]): number[] {
+  const ids: number[] = [];
+  for (const comment of comments) {
+    if (comment.replies?.length) {
+      ids.push(comment.id);
+      ids.push(...collectExpandableIds(comment.replies));
+    }
+  }
+  return ids;
+}
+
 export default function CommentList({
   comments,
   selectedCommentId,
@@ -29,7 +40,7 @@ export default function CommentList({
 }: CommentListProps) {
   const [deletingId, setDeletingId] = React.useState<number | null>(null);
   const [expandedIds, setExpandedIds] = React.useState<Set<number>>(
-    () => new Set(comments.filter((comment) => comment.replies?.length).map((comment) => comment.id))
+    () => new Set(collectExpandableIds(comments))
   );
   const [replyingToId, setReplyingToId] = React.useState<number | null>(null);
   const [replyText, setReplyText] = React.useState("");
@@ -38,10 +49,8 @@ export default function CommentList({
   React.useEffect(() => {
     setExpandedIds((current) => {
       const next = new Set(current);
-      for (const comment of comments) {
-        if (comment.replies?.length) {
-          next.add(comment.id);
-        }
+      for (const id of collectExpandableIds(comments)) {
+        next.add(id);
       }
       return next;
     });

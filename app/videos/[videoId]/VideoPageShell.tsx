@@ -5,16 +5,15 @@ import VideoPlayer from "@/components/VideoPlayer";
 import TimeBar from "@/components/TimeBar";
 import CommentList from "@/components/CommentList";
 import CommentForm from "@/components/CommentForm";
+import {
+  addReplyToTree,
+  findComment,
+  removeCommentFromTree,
+  sortComments,
+  type CommentData
+} from "@/lib/comment-tree";
 
-export type CommentData = {
-  id: number;
-  parentId?: number | null;
-  startSeconds: number;
-  endSeconds: number;
-  text: string;
-  createdAt: string;
-  replies?: CommentData[];
-};
+export type { CommentData };
 
 export interface VideoForClient {
   id?: number;
@@ -126,13 +125,13 @@ export default function VideoPageShell({
       },
       text
     );
-    setComments((prev) => sortComments([...prev, withReplies(created)]));
+    setComments((prev) => sortComments([...prev, created]));
     setSelectedRange(null);
   };
 
   const handleNewReply = async (parentId: number, text: string) => {
     const created = await persistReply(parentId, text);
-    setComments((prev) => addReplyToTree(prev, parentId, withReplies(created)));
+    setComments((prev) => addReplyToTree(prev, parentId, created));
   };
 
   const handleDeleteComment = async (commentId: number) => {
@@ -247,65 +246,4 @@ export default function VideoPageShell({
       </div>
     </div>
   );
-}
-
-function withReplies(comment: CommentData): CommentData {
-  return {
-    ...comment,
-    replies: sortComments(comment.replies ?? [])
-  };
-}
-
-function sortComments(comments: CommentData[]): CommentData[] {
-  return comments
-    .map(withReplies)
-    .sort(
-      (a, b) =>
-        a.startSeconds - b.startSeconds ||
-        Date.parse(a.createdAt) - Date.parse(b.createdAt)
-    );
-}
-
-function addReplyToTree(
-  comments: CommentData[],
-  parentId: number,
-  reply: CommentData
-): CommentData[] {
-  return comments.map((comment) => {
-    if (comment.id === parentId) {
-      return {
-        ...comment,
-        replies: sortComments([...(comment.replies ?? []), reply])
-      };
-    }
-
-    return {
-      ...comment,
-      replies: addReplyToTree(comment.replies ?? [], parentId, reply)
-    };
-  });
-}
-
-function removeCommentFromTree(
-  comments: CommentData[],
-  commentId: number
-): CommentData[] {
-  return comments
-    .filter((comment) => comment.id !== commentId)
-    .map((comment) => ({
-      ...comment,
-      replies: removeCommentFromTree(comment.replies ?? [], commentId)
-    }));
-}
-
-function findComment(
-  comments: CommentData[],
-  commentId: number
-): CommentData | null {
-  for (const comment of comments) {
-    if (comment.id === commentId) return comment;
-    const nested = findComment(comment.replies ?? [], commentId);
-    if (nested) return nested;
-  }
-  return null;
 }

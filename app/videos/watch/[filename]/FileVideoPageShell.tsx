@@ -1,8 +1,13 @@
 "use client";
 
 import * as React from "react";
+import {
+  addReplyToTree,
+  findComment,
+  removeCommentFromTree,
+  type CommentData
+} from "@/lib/comment-tree";
 import VideoPageShell, {
-  type CommentData,
   type PersistCommentFn,
   type PersistReplyFn,
   type DeleteCommentFn
@@ -37,49 +42,6 @@ function normalizeComments(comments: CommentData[]): CommentData[] {
     parentId: comment.parentId ?? null,
     replies: normalizeComments(comment.replies ?? [])
   }));
-}
-
-function findComment(comments: CommentData[], commentId: number): CommentData | null {
-  for (const comment of comments) {
-    if (comment.id === commentId) return comment;
-    const nested = findComment(comment.replies ?? [], commentId);
-    if (nested) return nested;
-  }
-  return null;
-}
-
-function addReplyToTree(
-  comments: CommentData[],
-  parentId: number,
-  reply: CommentData
-): CommentData[] {
-  return comments.map((comment) => {
-    if (comment.id === parentId) {
-      return {
-        ...comment,
-        replies: [...(comment.replies ?? []), reply].sort(
-          (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)
-        )
-      };
-    }
-
-    return {
-      ...comment,
-      replies: addReplyToTree(comment.replies ?? [], parentId, reply)
-    };
-  });
-}
-
-function removeCommentFromTree(
-  comments: CommentData[],
-  commentId: number
-): CommentData[] {
-  return comments
-    .filter((comment) => comment.id !== commentId)
-    .map((comment) => ({
-      ...comment,
-      replies: removeCommentFromTree(comment.replies ?? [], commentId)
-    }));
 }
 
 interface FileVideoPageShellProps {
