@@ -150,14 +150,16 @@ export default function VideoPageShell({
     if (selectedRange && videoElement) {
       videoElement.currentTime = selectedRange.startSeconds;
       setCurrentTime(selectedRange.startSeconds);
-      void videoElement.play().catch((error) => {
-        console.error("Failed to resume range loop", error);
-        setIsPlaying(false);
-      });
+      if (isPlaying) {
+        void videoElement.play().catch((error) => {
+          console.error("Failed to resume range loop", error);
+          setIsPlaying(false);
+        });
+      }
       return;
     }
     setIsPlaying(false);
-  }, [selectedRange]);
+  }, [selectedRange, isPlaying]);
 
   const handleNewComment = async (text: string) => {
     if (!selectedRange) return;
