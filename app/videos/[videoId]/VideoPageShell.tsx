@@ -68,6 +68,8 @@ export default function VideoPageShell({
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const selectedRangeRef = React.useRef(selectedRange);
   selectedRangeRef.current = selectedRange;
+  const isPlayingRef = React.useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -147,9 +149,11 @@ export default function VideoPageShell({
     if (range && videoElement) {
       videoElement.currentTime = range.startSeconds;
       setCurrentTime(range.startSeconds);
-      void videoElement.play().catch((error) => {
-        console.error("Failed to resume range loop", error);
-      });
+      if (isPlayingRef.current) {
+        void videoElement.play().catch((error) => {
+          console.error("Failed to resume range loop", error);
+        });
+      }
       return;
     }
     setIsPlaying(false);
