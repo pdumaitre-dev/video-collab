@@ -29,6 +29,11 @@ export type PersistCommentFn = (
 
 export type DeleteCommentFn = (commentId: number) => Promise<void>;
 
+type SelectedRange = {
+  startSeconds: number;
+  endSeconds: number;
+};
+
 interface VideoPageShellProps {
   video: VideoForClient;
   initialComments: CommentData[];
@@ -58,10 +63,7 @@ export default function VideoPageShell({
   const [duration, setDuration] = React.useState<number>(
     video.durationSeconds ?? 0
   );
-  const [selectedRange, setSelectedRange] = React.useState<{
-    startSeconds: number;
-    endSeconds: number;
-  } | null>(null);
+  const [selectedRange, setSelectedRange] = React.useState<SelectedRange | null>(null);
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
@@ -83,10 +85,71 @@ export default function VideoPageShell({
     return () => clearInterval(id);
   }, [duration]);
 
+  const isTimeInSelectedRange = React.useCallback(
+    (time: number) =>
+      selectedRange
+        ? time >= selectedRange.startSeconds && time < selectedRange.endSeconds
+        : true,
+    [selectedRange]
+  );
+
+  const playSelectedRange = React.useCallback(async (range: SelectedRange) => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    videoElement.currentTime = range.startSeconds;
+    setCurrentTime(range.startSeconds);
+
+    try {
+      await videoElement.play();
+    } catch (error) {
+      console.error("Failed to start selected range loop", error);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!selectedRange) return;
+
+    let frameId: number;
+    const enforceLoopBoundary = () => {
+      const videoElement = videoRef.current;
+      if (
+        videoElement &&
+        !videoElement.paused &&
+        (videoElement.currentTime >= selectedRange.endSeconds ||
+          videoElement.currentTime < selectedRange.startSeconds)
+      ) {
+        videoElement.currentTime = selectedRange.startSeconds;
+        setCurrentTime(selectedRange.startSeconds);
+      }
+
+      frameId = window.requestAnimationFrame(enforceLoopBoundary);
+    };
+
+    frameId = window.requestAnimationFrame(enforceLoopBoundary);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [selectedRange]);
+
   const handleSeek = (time: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
     }
+    setCurrentTime(time);
+  };
+
+  const handleTimeUpdate = (time: number) => {
+    const videoElement = videoRef.current;
+    if (
+      selectedRange &&
+      videoElement &&
+      !videoElement.paused &&
+      !isTimeInSelectedRange(time)
+    ) {
+      videoElement.currentTime = selectedRange.startSeconds;
+      setCurrentTime(selectedRange.startSeconds);
+      return;
+    }
+
     setCurrentTime(time);
   };
 
@@ -95,6 +158,11 @@ export default function VideoPageShell({
     if (!videoElement) return;
 
     if (videoElement.paused) {
+      if (selectedRange && !isTimeInSelectedRange(videoElement.currentTime)) {
+        videoElement.currentTime = selectedRange.startSeconds;
+        setCurrentTime(selectedRange.startSeconds);
+      }
+
       try {
         await videoElement.play();
       } catch (error) {
@@ -104,6 +172,15 @@ export default function VideoPageShell({
     }
 
     videoElement.pause();
+  };
+
+  const handleVideoEnded = () => {
+    if (!selectedRange) {
+      setIsPlaying(false);
+      return;
+    }
+
+    void playSelectedRange(selectedRange);
   };
 
   const handleNewComment = async (text: string) => {
@@ -137,6 +214,7 @@ export default function VideoPageShell({
 
   const handleSelectComment = (commentId: number) => {
     setSelectedCommentId(commentId);
+    setSelectedRange(null);
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
@@ -158,11 +236,11 @@ export default function VideoPageShell({
           <VideoPlayer
             src={video.sourceUrl}
             videoRef={videoRef}
-            onTimeUpdate={setCurrentTime}
+            onTimeUpdate={handleTimeUpdate}
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={handleVideoEnded}
           />
           <div className="flex items-center">
             <button
@@ -205,18 +283,21 @@ export default function VideoPageShell({
               comments={comments}
               selectedRange={selectedRange}
               onSeek={handleSeek}
-              onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
-                setSelectedRange({
+              onRangeSelected={(rangeStartSeconds, rangeEndSeconds) => {
+                const nextRange = {
                   startSeconds: rangeStartSeconds,
                   endSeconds: rangeEndSeconds
-                });
-                handleSeek(dragEndSeconds);
+                };
+                setSelectedCommentId(null);
+                setSelectedRange(nextRange);
+                void playSelectedRange(nextRange);
               }}
             />
           </div>
           <CommentForm
             selectedRange={selectedRange}
             onSubmit={handleNewComment}
+            onClearSelection={() => setSelectedRange(null)}
           />
         </div>
       </div>
