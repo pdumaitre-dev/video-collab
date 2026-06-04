@@ -95,20 +95,22 @@ export default function VideoPageShell({
 
   const playSelectedRange = React.useCallback(async (range: SelectedRange) => {
     const videoElement = videoRef.current;
-    if (!videoElement) return;
+    if (!videoElement) return false;
 
     videoElement.currentTime = range.startSeconds;
     setCurrentTime(range.startSeconds);
 
     try {
       await videoElement.play();
+      return true;
     } catch (error) {
       console.error("Failed to start selected range loop", error);
+      return false;
     }
   }, []);
 
   React.useEffect(() => {
-    if (!selectedRange) return;
+    if (!selectedRange || !isPlaying) return;
 
     let frameId: number;
     const enforceLoopBoundary = () => {
@@ -123,16 +125,22 @@ export default function VideoPageShell({
         setCurrentTime(selectedRange.startSeconds);
       }
 
-      frameId = window.requestAnimationFrame(enforceLoopBoundary);
+      if (videoElement && !videoElement.paused) {
+        frameId = window.requestAnimationFrame(enforceLoopBoundary);
+      }
     };
 
     frameId = window.requestAnimationFrame(enforceLoopBoundary);
     return () => window.cancelAnimationFrame(frameId);
-  }, [selectedRange]);
+  }, [selectedRange, isPlaying]);
 
   const handleSeek = (time: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = time;
+    const videoElement = videoRef.current;
+    if (videoElement) {
+      if (selectedRange && !videoElement.paused) {
+        videoElement.pause();
+      }
+      videoElement.currentTime = time;
     }
     setCurrentTime(time);
   };
@@ -180,7 +188,11 @@ export default function VideoPageShell({
       return;
     }
 
-    void playSelectedRange(selectedRange);
+    void playSelectedRange(selectedRange).then((started) => {
+      if (!started) {
+        setIsPlaying(false);
+      }
+    });
   };
 
   const handleNewComment = async (text: string) => {
