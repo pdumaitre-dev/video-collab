@@ -67,6 +67,10 @@ export default function VideoPageShell({
   >(null);
   const [loopRangeEnabled, setLoopRangeEnabled] = React.useState(true);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const loopRangeRef = React.useRef<{
+    startSeconds: number;
+    endSeconds: number;
+  } | null>(null);
 
   const selectedComment = React.useMemo(
     () => comments.find((comment) => comment.id === selectedCommentId) ?? null,
@@ -75,6 +79,7 @@ export default function VideoPageShell({
   const loopRange = loopRangeEnabled
     ? selectedRange ?? selectedComment
     : null;
+  loopRangeRef.current = loopRange;
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -110,16 +115,18 @@ export default function VideoPageShell({
   };
 
   const handleVideoTimeUpdate = (time: number) => {
+    const activeLoopRange = loopRangeRef.current;
+
     if (
-      loopRange &&
-      loopRange.endSeconds > loopRange.startSeconds &&
-      time >= loopRange.endSeconds
+      activeLoopRange &&
+      activeLoopRange.endSeconds > activeLoopRange.startSeconds &&
+      time >= activeLoopRange.endSeconds
     ) {
       const el = videoRef.current;
       if (el) {
-        el.currentTime = loopRange.startSeconds;
+        el.currentTime = activeLoopRange.startSeconds;
       }
-      setCurrentTime(loopRange.startSeconds);
+      setCurrentTime(activeLoopRange.startSeconds);
       return;
     }
 
@@ -187,14 +194,15 @@ export default function VideoPageShell({
 
   const handleVideoEnded = () => {
     const videoElement = videoRef.current;
+    const activeLoopRange = loopRangeRef.current;
 
     if (
-      loopRange &&
+      activeLoopRange &&
       videoElement &&
-      loopRange.endSeconds > loopRange.startSeconds
+      activeLoopRange.endSeconds > activeLoopRange.startSeconds
     ) {
-      videoElement.currentTime = loopRange.startSeconds;
-      setCurrentTime(loopRange.startSeconds);
+      videoElement.currentTime = activeLoopRange.startSeconds;
+      setCurrentTime(activeLoopRange.startSeconds);
       videoElement.play().catch((error) => {
         console.error("Failed to restart loop playback", error);
         setIsPlaying(false);
