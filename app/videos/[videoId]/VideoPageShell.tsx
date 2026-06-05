@@ -70,10 +70,13 @@ export default function VideoPageShell({
     number | null
   >(null);
   const [isRangeLoopEnabled, setIsRangeLoopEnabled] = React.useState(true);
+  const [isRangeLoopDismissed, setIsRangeLoopDismissed] =
+    React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const isRangeSelectionActiveRef = React.useRef(false);
 
   const activeLoopRange = React.useMemo<TimeRange | null>(() => {
-    if (!isRangeLoopEnabled) return null;
+    if (!isRangeLoopEnabled || isRangeLoopDismissed) return null;
 
     const range =
       selectedRange ??
@@ -86,7 +89,13 @@ export default function VideoPageShell({
       startSeconds: range.startSeconds,
       endSeconds: range.endSeconds
     };
-  }, [comments, isRangeLoopEnabled, selectedCommentId, selectedRange]);
+  }, [
+    comments,
+    isRangeLoopDismissed,
+    isRangeLoopEnabled,
+    selectedCommentId,
+    selectedRange
+  ]);
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -114,6 +123,12 @@ export default function VideoPageShell({
   const clearActiveRange = React.useCallback(() => {
     setSelectedCommentId(null);
     setSelectedRange(null);
+    setIsRangeLoopDismissed(false);
+  }, []);
+
+  const clearActiveRangeLoop = React.useCallback(() => {
+    setSelectedCommentId(null);
+    setIsRangeLoopDismissed(true);
   }, []);
 
   const handleTimelineSeek = React.useCallback(
@@ -130,7 +145,11 @@ export default function VideoPageShell({
     (time: number) => {
       const videoElement = videoRef.current;
 
-      if (activeLoopRange && time >= activeLoopRange.endSeconds) {
+      if (
+        activeLoopRange &&
+        !isRangeSelectionActiveRef.current &&
+        time >= activeLoopRange.endSeconds
+      ) {
         if (videoElement) {
           videoElement.currentTime = activeLoopRange.startSeconds;
         }
@@ -157,7 +176,7 @@ export default function VideoPageShell({
     }
 
     videoElement.pause();
-    clearActiveRange();
+    clearActiveRangeLoop();
   };
 
   const handleNewComment = async (text: string) => {
@@ -192,11 +211,20 @@ export default function VideoPageShell({
   const handleSelectComment = (commentId: number) => {
     setSelectedCommentId(commentId);
     setSelectedRange(null);
+    setIsRangeLoopDismissed(false);
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
       seekTo(comment.startSeconds);
     }
   };
+
+  const handleRangeSelectionStart = React.useCallback(() => {
+    isRangeSelectionActiveRef.current = true;
+  }, []);
+
+  const handleRangeSelectionEnd = React.useCallback(() => {
+    isRangeSelectionActiveRef.current = false;
+  }, []);
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)]">
@@ -260,8 +288,11 @@ export default function VideoPageShell({
               comments={comments}
               selectedRange={selectedRange}
               onSeek={handleTimelineSeek}
+              onRangeSelectionStart={handleRangeSelectionStart}
+              onRangeSelectionEnd={handleRangeSelectionEnd}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
                 setSelectedCommentId(null);
+                setIsRangeLoopDismissed(false);
                 setSelectedRange({
                   startSeconds: rangeStartSeconds,
                   endSeconds: rangeEndSeconds
