@@ -139,7 +139,6 @@ export default function VideoPageShell({
       return;
     }
 
-    clearSelection();
     videoElement.pause();
   };
 
@@ -267,6 +266,7 @@ export default function VideoPageShell({
               comments={comments}
               selectedRange={selectedRange}
               onSeek={handleTimelineSeek}
+              onDragSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
                 setSelectedCommentId(null);
                 setSelectedRange({

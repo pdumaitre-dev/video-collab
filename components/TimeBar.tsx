@@ -20,6 +20,8 @@ interface TimeBarProps {
   /** Persisted selection from parent; shown until comment is submitted */
   selectedRange?: SelectedRange | null;
   onSeek: (timeSeconds: number) => void;
+  /** Scrubs the playhead during range drags without treating it as a click seek */
+  onDragSeek?: (timeSeconds: number) => void;
   /** Called with normalized range (start <= end) and the position where the drag ended */
   onRangeSelected: (
     rangeStartSeconds: number,
@@ -48,6 +50,7 @@ export default function TimeBar({
   comments = [],
   selectedRange = null,
   onSeek,
+  onDragSeek = onSeek,
   onRangeSelected
 }: TimeBarProps) {
   const timelineRef = React.useRef<HTMLDivElement | null>(null);
@@ -92,7 +95,7 @@ export default function TimeBar({
         dragStartSeconds: dragStartSecondsRef.current,
         dragEndSeconds
       });
-      onSeek(dragEndSeconds);
+      onDragSeek(dragEndSeconds);
     };
 
     const onUp = (upEvent: MouseEvent) => {

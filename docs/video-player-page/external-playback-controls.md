@@ -24,7 +24,8 @@ Playback on the video page is controlled by an external play/pause button in `ap
 - The comments panel exposes a `Loop range` toggle, enabled by default.
 - When enabled, selecting a saved comment seeks to `startSeconds` and loops playback back to `startSeconds` once `currentTime >= endSeconds`.
 - Selecting a draft range on the timebar uses the same loop behavior while the range remains selected for comment entry.
-- Looping stops when the user clicks elsewhere on the timebar, pauses playback, saves the draft comment, deletes the selected comment, or turns the toggle off.
+- Looping stops when the user clicks elsewhere on the timebar, saves the draft comment, deletes the selected comment, or turns the toggle off.
+- Pausing playback suspends the loop without clearing the selected range/comment; resuming playback continues the same loop when the toggle remains on.
 - No API or schema state is stored for loop preference; it is local to the page session.
 
 ## Why
