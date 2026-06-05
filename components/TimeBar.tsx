@@ -19,7 +19,7 @@ interface TimeBarProps {
   comments?: CommentRange[];
   /** Persisted selection from parent; shown until comment is submitted */
   selectedRange?: SelectedRange | null;
-  onSeek: (timeSeconds: number) => void;
+  onSeek: (timeSeconds: number, interaction: "click" | "drag") => void;
   /** Called with normalized range (start <= end) and the position where the drag ended */
   onRangeSelected: (
     rangeStartSeconds: number,
@@ -52,6 +52,7 @@ export default function TimeBar({
 }: TimeBarProps) {
   const timelineRef = React.useRef<HTMLDivElement | null>(null);
   const dragStartSecondsRef = React.useRef(0);
+  const didDragRangeRef = React.useRef(false);
   const [selection, setSelection] = React.useState<{
     dragStartSeconds: number;
     dragEndSeconds: number;
@@ -69,8 +70,12 @@ export default function TimeBar({
 
   const handleClickSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (durationSeconds <= 0) return;
+    if (didDragRangeRef.current) {
+      didDragRangeRef.current = false;
+      return;
+    }
     const seconds = toSeconds(e.clientX);
-    onSeek(seconds);
+    onSeek(seconds, "click");
   };
 
   const handleMouseDownSelection = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -78,15 +83,19 @@ export default function TimeBar({
     e.preventDefault();
     const dragStartSeconds = toSeconds(e.clientX);
     dragStartSecondsRef.current = dragStartSeconds;
+    didDragRangeRef.current = false;
     setSelection({ dragStartSeconds, dragEndSeconds: dragStartSeconds });
 
     const onMove = (moveEvent: MouseEvent) => {
       const dragEndSeconds = toSeconds(moveEvent.clientX);
+      if (Math.abs(dragEndSeconds - dragStartSecondsRef.current) >= 0.1) {
+        didDragRangeRef.current = true;
+      }
       setSelection({
         dragStartSeconds: dragStartSecondsRef.current,
         dragEndSeconds
       });
-      onSeek(dragEndSeconds);
+      onSeek(dragEndSeconds, "drag");
     };
 
     const onUp = (upEvent: MouseEvent) => {
@@ -102,6 +111,7 @@ export default function TimeBar({
         Math.max(dragStartSecondsRef.current, dragEndSeconds)
       );
       if (rangeEndSeconds - rangeStartSeconds >= 0.1) {
+        didDragRangeRef.current = true;
         onRangeSelected(rangeStartSeconds, rangeEndSeconds, dragEndSeconds);
         setSelection({ dragStartSeconds: rangeStartSeconds, dragEndSeconds: rangeEndSeconds });
       } else {
