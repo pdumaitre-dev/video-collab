@@ -65,7 +65,16 @@ export default function VideoPageShell({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
+  const [loopRangeEnabled, setLoopRangeEnabled] = React.useState(true);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  const selectedComment = React.useMemo(
+    () => comments.find((comment) => comment.id === selectedCommentId) ?? null,
+    [comments, selectedCommentId]
+  );
+  const loopRange = loopRangeEnabled
+    ? selectedRange ?? selectedComment
+    : null;
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -90,6 +99,33 @@ export default function VideoPageShell({
     setCurrentTime(time);
   };
 
+  const clearSelection = () => {
+    setSelectedRange(null);
+    setSelectedCommentId(null);
+  };
+
+  const handleTimelineSeek = (time: number) => {
+    clearSelection();
+    handleSeek(time);
+  };
+
+  const handleVideoTimeUpdate = (time: number) => {
+    if (
+      loopRange &&
+      loopRange.endSeconds > loopRange.startSeconds &&
+      time >= loopRange.endSeconds
+    ) {
+      const el = videoRef.current;
+      if (el) {
+        el.currentTime = loopRange.startSeconds;
+      }
+      setCurrentTime(loopRange.startSeconds);
+      return;
+    }
+
+    setCurrentTime(time);
+  };
+
   const handleTogglePlayback = async () => {
     const videoElement = videoRef.current;
     if (!videoElement) return;
@@ -103,6 +139,7 @@ export default function VideoPageShell({
       return;
     }
 
+    clearSelection();
     videoElement.pause();
   };
 
@@ -137,10 +174,35 @@ export default function VideoPageShell({
 
   const handleSelectComment = (commentId: number) => {
     setSelectedCommentId(commentId);
+    setSelectedRange(null);
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
     }
+  };
+
+  const handleLoopRangeToggle = () => {
+    setLoopRangeEnabled((enabled) => !enabled);
+  };
+
+  const handleVideoEnded = () => {
+    const videoElement = videoRef.current;
+
+    if (
+      loopRange &&
+      videoElement &&
+      loopRange.endSeconds > loopRange.startSeconds
+    ) {
+      videoElement.currentTime = loopRange.startSeconds;
+      setCurrentTime(loopRange.startSeconds);
+      videoElement.play().catch((error) => {
+        console.error("Failed to restart loop playback", error);
+        setIsPlaying(false);
+      });
+      return;
+    }
+
+    setIsPlaying(false);
   };
 
   return (
@@ -158,11 +220,11 @@ export default function VideoPageShell({
           <VideoPlayer
             src={video.sourceUrl}
             videoRef={videoRef}
-            onTimeUpdate={setCurrentTime}
+            onTimeUpdate={handleVideoTimeUpdate}
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={handleVideoEnded}
           />
           <div className="flex items-center">
             <button
@@ -204,8 +266,9 @@ export default function VideoPageShell({
               currentTime={currentTime}
               comments={comments}
               selectedRange={selectedRange}
-              onSeek={handleSeek}
+              onSeek={handleTimelineSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
+                setSelectedCommentId(null);
                 setSelectedRange({
                   startSeconds: rangeStartSeconds,
                   endSeconds: rangeEndSeconds
@@ -221,9 +284,34 @@ export default function VideoPageShell({
         </div>
       </div>
       <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
-        <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
-          Comments
-        </h3>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-heading text-sm font-semibold tracking-tight text-fg-primary">
+              Comments
+            </h3>
+            <p className="mt-1 text-xs text-fg-muted">
+              Selected ranges repeat while loop is on.
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-pressed={loopRangeEnabled}
+            onClick={handleLoopRangeToggle}
+            className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-panel ${
+              loopRangeEnabled
+                ? "border-accent bg-accent-muted text-fg-primary"
+                : "border-white/[0.08] bg-surface-card text-fg-secondary hover:border-white/[0.12] hover:bg-surface-elevated"
+            }`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                loopRangeEnabled ? "bg-accent" : "bg-fg-muted"
+              }`}
+              aria-hidden
+            />
+            Loop range
+          </button>
+        </div>
         <CommentList
           comments={comments}
           selectedCommentId={selectedCommentId}
