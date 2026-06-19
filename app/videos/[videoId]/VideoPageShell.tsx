@@ -48,11 +48,20 @@ export default function VideoPageShell({
   deleteComment
 }: VideoPageShellProps) {
   const [comments, setComments] = React.useState<CommentData[]>(initialComments);
+  const hasLocalCommentChangesRef = React.useRef(false);
+  const commentsSourceRef = React.useRef(video.sourceUrl);
 
   // Sync when parent loads comments after mount (e.g. FileVideoPageShell loading from localStorage)
   React.useEffect(() => {
-    setComments(initialComments);
-  }, [initialComments]);
+    if (commentsSourceRef.current !== video.sourceUrl) {
+      commentsSourceRef.current = video.sourceUrl;
+      hasLocalCommentChangesRef.current = false;
+    }
+
+    if (!hasLocalCommentChangesRef.current) {
+      setComments(initialComments);
+    }
+  }, [initialComments, video.sourceUrl]);
 
   const [currentTime, setCurrentTime] = React.useState(0);
   const [isPlaying, setIsPlaying] = React.useState(false);
@@ -123,6 +132,7 @@ export default function VideoPageShell({
       text,
       null
     );
+    hasLocalCommentChangesRef.current = true;
     setComments((prev) =>
       [...prev, created].sort(compareComments)
     );
@@ -142,11 +152,13 @@ export default function VideoPageShell({
       parentId
     );
 
+    hasLocalCommentChangesRef.current = true;
     setComments((prev) => addReplyToComments(prev, parentId, created));
   };
 
   const handleDeleteComment = async (commentId: number) => {
     await deleteComment(commentId);
+    hasLocalCommentChangesRef.current = true;
     setComments((prev) => removeCommentFromTree(prev, commentId));
     if (selectedCommentId === commentId) {
       setSelectedCommentId(null);
