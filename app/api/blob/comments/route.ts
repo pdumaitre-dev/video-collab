@@ -2,6 +2,29 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { listVideoBlobs } from "@/lib/blob";
 
+type CommentRecord = {
+  id: number;
+  pathname: string;
+  startSeconds: number;
+  endSeconds: number;
+  text: string;
+  parentId: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type SerializedComment = {
+  id: number;
+  pathname: string;
+  startSeconds: number;
+  endSeconds: number;
+  text: string;
+  parentId: number | null;
+  createdAt: string;
+  updatedAt: string;
+  replies: SerializedComment[];
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const pathname = searchParams.get("pathname");
@@ -21,17 +44,7 @@ export async function GET(request: Request) {
       orderBy: [{ startSeconds: "asc" }, { createdAt: "asc" }]
     });
 
-    return NextResponse.json(
-      comments.map((c) => ({
-        id: c.id,
-        pathname: c.pathname,
-        startSeconds: c.startSeconds,
-        endSeconds: c.endSeconds,
-        text: c.text,
-        createdAt: c.createdAt.toISOString(),
-        updatedAt: c.updatedAt.toISOString()
-      }))
-    );
+    return NextResponse.json(buildCommentTree(comments));
   } catch (error) {
     console.error("Error fetching blob comments", error);
     return NextResponse.json(
@@ -50,11 +63,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { pathname, startSeconds, endSeconds, text } = body as {
+  const { pathname, startSeconds, endSeconds, text, parentId } = body as {
     pathname?: string;
     startSeconds?: number;
     endSeconds?: number;
     text?: string;
+    parentId?: number | null;
   };
 
   if (!pathname || typeof pathname !== "string") {
@@ -72,31 +86,46 @@ export async function POST(request: Request) {
     );
   }
 
-  if (
-    typeof startSeconds !== "number" ||
-    typeof endSeconds !== "number" ||
-    !Number.isFinite(startSeconds) ||
-    !Number.isFinite(endSeconds)
-  ) {
-    return NextResponse.json(
-      { error: "startSeconds and endSeconds must be numbers" },
-      { status: 400 }
-    );
-  }
-
-  if (!(startSeconds >= 0 && startSeconds < endSeconds)) {
-    return NextResponse.json(
-      { error: "Invalid time range" },
-      { status: 400 }
-    );
-  }
-
   const trimmed = (text ?? "").trim();
   if (!trimmed) {
     return NextResponse.json(
       { error: "Comment text is required" },
       { status: 400 }
     );
+  }
+
+  const normalizedParentId =
+    parentId === undefined || parentId === null ? null : Number(parentId);
+
+  if (
+    normalizedParentId !== null &&
+    (!Number.isInteger(normalizedParentId) || normalizedParentId <= 0)
+  ) {
+    return NextResponse.json(
+      { error: "parentId must be a positive integer" },
+      { status: 400 }
+    );
+  }
+
+  if (normalizedParentId === null) {
+    if (
+      typeof startSeconds !== "number" ||
+      typeof endSeconds !== "number" ||
+      !Number.isFinite(startSeconds) ||
+      !Number.isFinite(endSeconds)
+    ) {
+      return NextResponse.json(
+        { error: "startSeconds and endSeconds must be numbers" },
+        { status: 400 }
+      );
+    }
+
+    if (!(startSeconds >= 0 && startSeconds < endSeconds)) {
+      return NextResponse.json(
+        { error: "Invalid time range" },
+        { status: 400 }
+      );
+    }
   }
 
   try {
@@ -110,12 +139,37 @@ export async function POST(request: Request) {
       );
     }
 
+    const parent =
+      normalizedParentId === null
+        ? null
+        : await prisma.comment_blob.findUnique({
+            where: { id: normalizedParentId }
+          });
+
+    if (normalizedParentId !== null && !parent) {
+      return NextResponse.json(
+        { error: "Parent comment not found" },
+        { status: 404 }
+      );
+    }
+
+    if (parent && parent.pathname !== trimmedPathname) {
+      return NextResponse.json(
+        { error: "Parent comment belongs to a different video" },
+        { status: 400 }
+      );
+    }
+
+    const commentStartSeconds = parent ? parent.startSeconds : startSeconds as number;
+    const commentEndSeconds = parent ? parent.endSeconds : endSeconds as number;
+
     const comment = await prisma.comment_blob.create({
       data: {
         pathname: trimmedPathname,
-        startSeconds,
-        endSeconds,
-        text: trimmed
+        startSeconds: commentStartSeconds,
+        endSeconds: commentEndSeconds,
+        text: trimmed,
+        parentId: normalizedParentId
       }
     });
 
@@ -126,8 +180,10 @@ export async function POST(request: Request) {
         startSeconds: comment.startSeconds,
         endSeconds: comment.endSeconds,
         text: comment.text,
+        parentId: comment.parentId,
         createdAt: comment.createdAt.toISOString(),
-        updatedAt: comment.updatedAt.toISOString()
+        updatedAt: comment.updatedAt.toISOString(),
+        replies: []
       },
       { status: 201 }
     );
@@ -138,6 +194,64 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+function buildCommentTree(comments: CommentRecord[]): SerializedComment[] {
+  const byId = new Map<number, SerializedComment>();
+  const roots: SerializedComment[] = [];
+
+  for (const comment of comments) {
+    byId.set(comment.id, serializeComment(comment));
+  }
+
+  for (const comment of comments) {
+    const serialized = byId.get(comment.id);
+    if (!serialized) continue;
+
+    const parent =
+      comment.parentId === null ? null : byId.get(comment.parentId);
+
+    if (parent) {
+      parent.replies.push(serialized);
+    } else {
+      roots.push(serialized);
+    }
+  }
+
+  sortComments(roots);
+  return roots;
+}
+
+function serializeComment(comment: CommentRecord): SerializedComment {
+  return {
+    id: comment.id,
+    pathname: comment.pathname,
+    startSeconds: comment.startSeconds,
+    endSeconds: comment.endSeconds,
+    text: comment.text,
+    parentId: comment.parentId,
+    createdAt: comment.createdAt.toISOString(),
+    updatedAt: comment.updatedAt.toISOString(),
+    replies: []
+  };
+}
+
+function sortComments(comments: SerializedComment[]) {
+  comments.sort(compareComments);
+  for (const comment of comments) {
+    sortComments(comment.replies);
+  }
+}
+
+function compareComments(a: SerializedComment, b: SerializedComment) {
+  const timeDiff = a.startSeconds - b.startSeconds;
+  if (timeDiff !== 0) return timeDiff;
+
+  const createdDiff =
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  if (createdDiff !== 0) return createdDiff;
+
+  return a.id - b.id;
 }
 
 export async function DELETE(request: Request) {

@@ -113,6 +113,8 @@ surface-page (deepest)
 
 - Empty state: Dashed border, centered message, two-line hint.
 - Comment items: `rounded-lg`, `bg-surface-card`, `border-white/[0.08]`.
+- Replies: nested inside the parent card with an inset left border; replies use
+  the parent's time range and do not add separate timebar markers.
 - Delete button: trash icon, shown on hover; red hover state, loading spinner while deleting.
 - Selected: `border-accent`, `bg-accent-muted`, `ring-1 ring-accent/30`.
 - Metadata (time range, created): `font-mono`, `text-fg-muted`, `text-[11px]`.
