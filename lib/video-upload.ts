@@ -55,7 +55,10 @@ const VIDEO_BLOB_PREFIX = "videos/";
 export function assertAllowedVideoBlobPathname(pathname: string): string | null {
   const trimmed = pathname.trim();
   if (!trimmed) return "pathname cannot be empty";
-  if (trimmed.includes("..") || trimmed.includes("\\")) {
+  if (
+    trimmed.includes("\\") ||
+    trimmed.split("/").some((segment) => segment === "..")
+  ) {
     return "Invalid pathname";
   }
   if (!trimmed.startsWith(VIDEO_BLOB_PREFIX)) {
