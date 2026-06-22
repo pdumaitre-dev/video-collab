@@ -80,3 +80,7 @@ The core smoke skill (`.cursor/skills/core-e2e-smoke-test/SKILL.md`) expects the
 - **Core critical-path smoke test:** `.cursor/skills/core-e2e-smoke-test/SKILL.md`
   - Run when validating core video annotation behavior.
   - On failure, report expected vs actual behavior with evidence.
+- **Ticket to PRD:** `.cursor/skills/ticket-to-prd/SKILL.md`
+  - PDDS Jira ticket → grounded PRD in fixed Confluence folder, with Jira link-back. Requires Atlassian MCP.
+- **PDDS bug triage:** `.cursor/skills/pdds-bug-triage/SKILL.md`
+  - PDDS bug → reproduce, screen recording in cloud agent run, triage comment on Jira (video link = agent run URL, not Jira attachment). Requires Atlassian MCP + cloud agent.
