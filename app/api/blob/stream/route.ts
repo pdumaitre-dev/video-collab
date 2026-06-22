@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getBlobStream } from "@/lib/blob";
+import { assertAllowedVideoBlobPathname } from "@/lib/video-upload";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,6 +11,11 @@ export async function GET(request: Request) {
       { error: "Missing pathname parameter" },
       { status: 400 }
     );
+  }
+
+  const pathnameError = assertAllowedVideoBlobPathname(pathname);
+  if (pathnameError) {
+    return NextResponse.json({ error: pathnameError }, { status: 400 });
   }
 
   try {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { listVideoBlobs } from "@/lib/blob";
+import { assertAllowedVideoBlobPathname } from "@/lib/video-upload";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -14,6 +15,10 @@ export async function GET(request: Request) {
   }
 
   const decoded = decodeURIComponent(pathname);
+  const pathnameError = assertAllowedVideoBlobPathname(decoded);
+  if (pathnameError) {
+    return NextResponse.json({ error: pathnameError }, { status: 400 });
+  }
 
   try {
     const comments = await prisma.comment_blob.findMany({
@@ -72,6 +77,11 @@ export async function POST(request: Request) {
     );
   }
 
+  const pathnameError = assertAllowedVideoBlobPathname(trimmedPathname);
+  if (pathnameError) {
+    return NextResponse.json({ error: pathnameError }, { status: 400 });
+  }
+
   if (
     typeof startSeconds !== "number" ||
     typeof endSeconds !== "number" ||
@@ -95,6 +105,13 @@ export async function POST(request: Request) {
   if (!trimmed) {
     return NextResponse.json(
       { error: "Comment text is required" },
+      { status: 400 }
+    );
+  }
+
+  if (trimmed.length > 10_000) {
+    return NextResponse.json(
+      { error: "Comment text must be 10,000 characters or fewer" },
       { status: 400 }
     );
   }
