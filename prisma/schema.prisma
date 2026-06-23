@@ -44,3 +44,16 @@ model Comment_blob {
   @@index([pathname])
 }
 
+model Chapter_blob {
+  id        Int      @id @default(autoincrement())
+  pathname  String   // Blob pathname, e.g. "videos/sample.mp4"
+  label     String
+  seconds   Float
+  color     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pathname])
+  @@index([pathname, seconds])
+}
+

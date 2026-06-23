@@ -117,6 +117,14 @@ surface-page (deepest)
 - Selected: `border-accent`, `bg-accent-muted`, `ring-1 ring-accent/30`.
 - Metadata (time range, created): `font-mono`, `text-fg-muted`, `text-[11px]`.
 
+## Chapters
+
+- Chapters share the comments sidebar surface and are stacked above comments.
+- Add chapters from the current playhead with a compact card form.
+- Chapter list items use the same card, hover, selected, and delete affordances as comments.
+- Chapter timestamps use `font-mono`, `text-fg-muted`, `text-[11px]`.
+- Timeline chapter markers use the accent-hover blue (`#60a5fa`) by default; optional saved colors must be hex `#RRGGBB`.
+
 ## Depth and Feel (Without Images)
 
 - **Layered surfaces**: Use page → panel → card → elevated hierarchy.
@@ -131,7 +139,7 @@ surface-page (deepest)
 The following components and UI elements are **out of scope** for style changes:
 
 - **Video player** (`components/VideoPlayer.tsx`): Video surface, loading, error states.
-- **Time bar** (`components/TimeBar.tsx`): Seek bar, range selection, current time, duration. Drag start/end times use same format as current time (yellow `#fde68a`, monospace, 11px) and sit slightly above the ruler. Selected range is drawn as a yellow border only (`#fde68a`, transparent fill) on both ruler and pill track; it persists until comment is submitted. Saved comment ranges use the same pattern in green (`rgb(16, 185, 129)`). Green (z-index 5) sits below yellow (z-index 6–7) so yellow wins when overlapping.
+- **Time bar** (`components/TimeBar.tsx`): Seek bar, range selection, current time, duration. Drag start/end times use same format as current time (yellow `#fde68a`, monospace, 11px) and sit slightly above the ruler. Selected range is drawn as a yellow border only (`#fde68a`, transparent fill) on both ruler and pill track; it persists until comment is submitted. Saved comment ranges use the same pattern in green (`rgb(16, 185, 129)`). Green (z-index 5) sits below yellow (z-index 6–7) so yellow wins when overlapping. Chapter markers are point-in-time ticks layered above saved ranges and jump to the named timestamp on click.
 - **Play/pause button**: The control in `VideoPageShell` that toggles playback.
 
 These remain as-is to preserve playback behavior and accessibility.
