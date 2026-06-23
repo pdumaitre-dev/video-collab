@@ -59,6 +59,28 @@ interface VideoPageShellProps {
   deleteChapter: DeleteChapterFn;
 }
 
+function mergeChaptersWithLocalChanges(
+  currentChapters: ChapterData[],
+  incomingChapters: ChapterData[],
+  deletedChapterIds: Set<number>
+): ChapterData[] {
+  const merged = new Map<number, ChapterData>();
+
+  for (const chapter of incomingChapters) {
+    if (!deletedChapterIds.has(chapter.id)) {
+      merged.set(chapter.id, chapter);
+    }
+  }
+
+  for (const chapter of currentChapters) {
+    if (!deletedChapterIds.has(chapter.id) && !merged.has(chapter.id)) {
+      merged.set(chapter.id, chapter);
+    }
+  }
+
+  return Array.from(merged.values()).sort((a, b) => a.seconds - b.seconds);
+}
+
 export default function VideoPageShell({
   video,
   initialComments,
@@ -70,6 +92,9 @@ export default function VideoPageShell({
 }: VideoPageShellProps) {
   const [comments, setComments] = React.useState<CommentData[]>(initialComments);
   const [chapters, setChapters] = React.useState<ChapterData[]>(initialChapters);
+  const hasLocalChapterChangesRef = React.useRef(false);
+  const deletedChapterIdsRef = React.useRef<Set<number>>(new Set());
+  const chapterVideoSourceRef = React.useRef(video.sourceUrl);
 
   // Sync when parent loads comments after mount (e.g. FileVideoPageShell loading from localStorage)
   React.useEffect(() => {
@@ -79,10 +104,27 @@ export default function VideoPageShell({
   }, [initialComments]);
 
   React.useEffect(() => {
-    if (initialChapters.length > 0) {
+    if (chapterVideoSourceRef.current !== video.sourceUrl) {
+      chapterVideoSourceRef.current = video.sourceUrl;
+      hasLocalChapterChangesRef.current = false;
+      deletedChapterIdsRef.current = new Set();
       setChapters(initialChapters);
+      return;
     }
-  }, [initialChapters]);
+
+    if (hasLocalChapterChangesRef.current) {
+      setChapters((currentChapters) =>
+        mergeChaptersWithLocalChanges(
+          currentChapters,
+          initialChapters,
+          deletedChapterIdsRef.current
+        )
+      );
+      return;
+    }
+
+    setChapters(initialChapters);
+  }, [initialChapters, video.sourceUrl]);
 
   const [currentTime, setCurrentTime] = React.useState(0);
   const [isPlaying, setIsPlaying] = React.useState(false);
@@ -174,6 +216,7 @@ export default function VideoPageShell({
       label,
       seconds: Math.max(0, Math.min(currentTime, duration))
     });
+    hasLocalChapterChangesRef.current = true;
     setChapters((prev) =>
       [...prev, created].sort((a, b) => a.seconds - b.seconds)
     );
@@ -183,6 +226,8 @@ export default function VideoPageShell({
 
   const handleDeleteChapter = async (chapterId: number) => {
     await deleteChapter(chapterId);
+    hasLocalChapterChangesRef.current = true;
+    deletedChapterIdsRef.current.add(chapterId);
     setChapters((prev) => prev.filter((chapter) => chapter.id !== chapterId));
     if (selectedChapterId === chapterId) {
       setSelectedChapterId(null);
