@@ -68,7 +68,10 @@ export default function VideoPageShell({
     number | null
   >(null);
   const [loopRangeEnabled, setLoopRangeEnabled] = React.useState(true);
+  const [isRangePreviewActive, setIsRangePreviewActive] =
+    React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const suppressNextLoopRef = React.useRef(false);
 
   const selectedComment = React.useMemo(
     () => comments.find((comment) => comment.id === selectedCommentId) ?? null,
@@ -76,7 +79,7 @@ export default function VideoPageShell({
   );
 
   const activeLoopRange = React.useMemo(() => {
-    if (!loopRangeEnabled) return null;
+    if (!loopRangeEnabled || isRangePreviewActive) return null;
 
     const range = selectedComment ?? selectedRange;
     if (!range) return null;
@@ -86,7 +89,7 @@ export default function VideoPageShell({
     if (endSeconds - startSeconds < MIN_LOOP_DURATION_SECONDS) return null;
 
     return { startSeconds, endSeconds };
-  }, [loopRangeEnabled, selectedComment, selectedRange]);
+  }, [isRangePreviewActive, loopRangeEnabled, selectedComment, selectedRange]);
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -106,8 +109,12 @@ export default function VideoPageShell({
 
   const handleSeek = (
     time: number,
-    options: { clearLoopSelection?: boolean } = {}
+    options: { clearLoopSelection?: boolean; suppressLoop?: boolean } = {}
   ) => {
+    if (options.suppressLoop) {
+      suppressNextLoopRef.current = true;
+    }
+
     if (videoRef.current) {
       videoRef.current.currentTime = time;
     }
@@ -120,6 +127,12 @@ export default function VideoPageShell({
   };
 
   const handleTimeUpdate = (time: number) => {
+    if (suppressNextLoopRef.current) {
+      suppressNextLoopRef.current = false;
+      setCurrentTime(time);
+      return;
+    }
+
     const loopRange = activeLoopRange;
     if (!loopRange) {
       setCurrentTime(time);
@@ -255,16 +268,18 @@ export default function VideoPageShell({
               selectedRange={selectedRange}
               onSeek={(timeSeconds, intent) => {
                 handleSeek(timeSeconds, {
-                  clearLoopSelection: intent === "seek"
+                  clearLoopSelection: intent === "seek",
+                  suppressLoop: intent === "range-preview"
                 });
               }}
+              onRangePreviewChange={setIsRangePreviewActive}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
                 setSelectedCommentId(null);
                 setSelectedRange({
                   startSeconds: rangeStartSeconds,
                   endSeconds: rangeEndSeconds
                 });
-                handleSeek(dragEndSeconds);
+                handleSeek(dragEndSeconds, { suppressLoop: true });
               }}
             />
           </div>

@@ -37,4 +37,4 @@ Playback on the video page is controlled by an external play/pause button in `ap
 - the selected comment range, after clicking a comment, or
 - the draft range selected on the time bar while adding a comment.
 
-`onTimeUpdate` keeps playback inside the active range by seeking back to `startSeconds` once `currentTime >= endSeconds`. Saving a draft comment clears the draft range. Direct time-bar seeks clear the active comment/draft selection; drag preview seeks do not.
+`onTimeUpdate` keeps playback inside the active range by seeking back to `startSeconds` once `currentTime >= endSeconds`. Saving a draft comment clears the draft range. Direct time-bar seeks clear the active comment/draft selection; drag preview seeks do not, and loop enforcement is suspended while a range drag is in progress.
