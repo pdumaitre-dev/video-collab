@@ -2,9 +2,9 @@
 
 Current docs:
 
-- `architecture.md`: app structure, Neon/Prisma connectivity, runtime flow, and data model.
+- `architecture.md`: app structure, Neon/Prisma connectivity, runtime flow, and data model, including Blob-backed chapters.
 - Root `AGENTS.md`: Cursor Cloud bootstrap, sandbox network, smoke-test data prerequisites.
-- `storage/vercel-blob.md`: Blob setup, upload flow, playback, and pathname rules.
+- `storage/vercel-blob.md`: Blob setup, upload flow, playback, comments, chapters, and pathname rules.
 - `video-player-page/external-playback-controls.md`: play/pause control behavior.
 - `style-reference.md`: UI tokens and layout rules.
 - `design-system-figma.md`: capturing the design system page into Figma.

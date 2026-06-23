@@ -2,17 +2,21 @@
 
 import * as React from "react";
 import VideoPageShell, {
+  type ChapterData,
   type CommentData,
   type PersistCommentFn,
-  type DeleteCommentFn
+  type DeleteCommentFn,
+  type PersistChapterFn,
+  type DeleteChapterFn
 } from "../../[videoId]/VideoPageShell";
 
-const STORAGE_PREFIX = "video-comments:";
+const COMMENT_STORAGE_PREFIX = "video-comments:";
+const CHAPTER_STORAGE_PREFIX = "video-chapters:";
 
 function loadCommentsFromStorage(sourceUrl: string): CommentData[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + sourceUrl);
+    const raw = localStorage.getItem(COMMENT_STORAGE_PREFIX + sourceUrl);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as CommentData[];
     return Array.isArray(parsed) ? parsed : [];
@@ -24,7 +28,34 @@ function loadCommentsFromStorage(sourceUrl: string): CommentData[] {
 function saveCommentsToStorage(sourceUrl: string, comments: CommentData[]) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_PREFIX + sourceUrl, JSON.stringify(comments));
+    localStorage.setItem(
+      COMMENT_STORAGE_PREFIX + sourceUrl,
+      JSON.stringify(comments)
+    );
+  } catch {
+    // ignore
+  }
+}
+
+function loadChaptersFromStorage(sourceUrl: string): ChapterData[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(CHAPTER_STORAGE_PREFIX + sourceUrl);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as ChapterData[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveChaptersToStorage(sourceUrl: string, chapters: ChapterData[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      CHAPTER_STORAGE_PREFIX + sourceUrl,
+      JSON.stringify(chapters)
+    );
   } catch {
     // ignore
   }
@@ -44,6 +75,8 @@ export default function FileVideoPageShell({
 }: FileVideoPageShellProps) {
   const [initialComments, setInitialComments] =
     React.useState<CommentData[]>(() => []);
+  const [initialChapters, setInitialChapters] =
+    React.useState<ChapterData[]>(() => []);
 
   React.useEffect(() => {
     if (pathname) {
@@ -51,7 +84,13 @@ export default function FileVideoPageShell({
         `/api/blob/comments?pathname=${encodeURIComponent(pathname)}`
       )
         .then((res) => (res.ok ? res.json() : []))
-        .then((data: Array<{ id: number; startSeconds: number; endSeconds: number; text: string; createdAt: string }>) => {
+        .then((data: Array<{
+          id: number;
+          startSeconds: number;
+          endSeconds: number;
+          text: string;
+          createdAt: string;
+        }>) => {
           setInitialComments(
             data.map((c) => ({
               id: c.id,
@@ -65,6 +104,35 @@ export default function FileVideoPageShell({
         .catch(() => setInitialComments([]));
     } else {
       setInitialComments(loadCommentsFromStorage(sourceUrl));
+    }
+  }, [pathname, sourceUrl]);
+
+  React.useEffect(() => {
+    if (pathname) {
+      fetch(
+        `/api/blob/chapters?pathname=${encodeURIComponent(pathname)}`
+      )
+        .then((res) => (res.ok ? res.json() : []))
+        .then((data: Array<{
+          id: number;
+          label: string;
+          seconds: number;
+          color?: string | null;
+          createdAt: string;
+        }>) => {
+          setInitialChapters(
+            data.map((chapter) => ({
+              id: chapter.id,
+              label: chapter.label,
+              seconds: chapter.seconds,
+              color: chapter.color,
+              createdAt: chapter.createdAt
+            }))
+          );
+        })
+        .catch(() => setInitialChapters([]));
+    } else {
+      setInitialChapters(loadChaptersFromStorage(sourceUrl));
     }
   }, [pathname, sourceUrl]);
 
@@ -141,6 +209,78 @@ export default function FileVideoPageShell({
     [pathname, sourceUrl]
   );
 
+  const persistChapter: PersistChapterFn = React.useCallback(
+    async (chapter) => {
+      if (pathname) {
+        const res = await fetch("/api/blob/chapters", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pathname,
+            label: chapter.label,
+            seconds: chapter.seconds
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? "Failed to create chapter");
+        }
+
+        const created = (await res.json()) as {
+          id: number;
+          label: string;
+          seconds: number;
+          color?: string | null;
+          createdAt: string;
+        };
+
+        return {
+          id: created.id,
+          label: created.label,
+          seconds: created.seconds,
+          color: created.color,
+          createdAt: created.createdAt
+        };
+      }
+
+      const current = loadChaptersFromStorage(sourceUrl);
+      const newChapter: ChapterData = {
+        id: Date.now(),
+        label: chapter.label,
+        seconds: chapter.seconds,
+        color: "#60a5fa",
+        createdAt: new Date().toISOString()
+      };
+      const updated = [...current, newChapter].sort(
+        (a, b) => a.seconds - b.seconds
+      );
+      saveChaptersToStorage(sourceUrl, updated);
+      return newChapter;
+    },
+    [pathname, sourceUrl]
+  );
+
+  const deleteChapter: DeleteChapterFn = React.useCallback(
+    async (chapterId: number) => {
+      if (pathname) {
+        const res = await fetch(
+          `/api/blob/chapters?id=${chapterId}`,
+          { method: "DELETE" }
+        );
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? "Failed to delete chapter");
+        }
+      } else {
+        const current = loadChaptersFromStorage(sourceUrl);
+        const updated = current.filter((chapter) => chapter.id !== chapterId);
+        saveChaptersToStorage(sourceUrl, updated);
+      }
+    },
+    [pathname, sourceUrl]
+  );
+
   return (
     <VideoPageShell
       video={{
@@ -149,8 +289,11 @@ export default function FileVideoPageShell({
         durationSeconds: null
       }}
       initialComments={initialComments}
+      initialChapters={initialChapters}
       persistComment={persistComment}
       deleteComment={deleteComment}
+      persistChapter={persistChapter}
+      deleteChapter={deleteChapter}
     />
   );
 }

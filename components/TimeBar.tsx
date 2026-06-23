@@ -8,6 +8,13 @@ type CommentRange = {
   endSeconds: number;
 };
 
+type ChapterMarker = {
+  id: number;
+  label: string;
+  seconds: number;
+  color?: string | null;
+};
+
 interface SelectedRange {
   startSeconds: number;
   endSeconds: number;
@@ -17,9 +24,11 @@ interface TimeBarProps {
   durationSeconds: number;
   currentTime: number;
   comments?: CommentRange[];
+  chapters?: ChapterMarker[];
   /** Persisted selection from parent; shown until comment is submitted */
   selectedRange?: SelectedRange | null;
   onSeek: (timeSeconds: number) => void;
+  onChapterSelect?: (chapterId: number) => void;
   /** Called with normalized range (start <= end) and the position where the drag ended */
   onRangeSelected: (
     rangeStartSeconds: number,
@@ -41,13 +50,16 @@ function formatTime(totalSeconds: number): string {
 const YELLOW_RANGE_BORDER = "#fde68a";
 /** Border color for saved comment ranges (fill transparent). */
 const GREEN_RANGE_BORDER = "rgb(16, 185, 129)";
+const CHAPTER_MARKER_COLOR = "#60a5fa";
 
 export default function TimeBar({
   durationSeconds,
   currentTime,
   comments = [],
+  chapters = [],
   selectedRange = null,
   onSeek,
+  onChapterSelect,
   onRangeSelected
 }: TimeBarProps) {
   const timelineRef = React.useRef<HTMLDivElement | null>(null);
@@ -192,6 +204,75 @@ export default function TimeBar({
               aria-hidden
             />
           )}
+          {chapters.map((chapter) => {
+            const left = (chapter.seconds / durationSeconds) * 100;
+            const markerColor = chapter.color ?? CHAPTER_MARKER_COLOR;
+            return (
+              <button
+                key={`chapter-ruler-${chapter.id}`}
+                type="button"
+                aria-label={`Jump to chapter ${chapter.label} at ${formatTime(chapter.seconds)}`}
+                title={`${chapter.label} (${formatTime(chapter.seconds)})`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (onChapterSelect) {
+                    onChapterSelect(chapter.id);
+                    return;
+                  }
+                  onSeek(chapter.seconds);
+                }}
+                onMouseDown={(event) => event.stopPropagation()}
+                style={{
+                  position: "absolute",
+                  left: `${left}%`,
+                  top: 0,
+                  bottom: 0,
+                  width: 14,
+                  transform: "translateX(-50%)",
+                  zIndex: 9,
+                  cursor: "pointer"
+                }}
+                className="group border-0 bg-transparent p-0"
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    left: "50%",
+                    width: 2,
+                    height: 22,
+                    backgroundColor: markerColor,
+                    borderRadius: 9999,
+                    transform: "translateX(-50%)",
+                    boxShadow: "0 0 0 1px rgba(15, 23, 42, 0.8)"
+                  }}
+                  aria-hidden
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    left: "50%",
+                    bottom: -21,
+                    maxWidth: 92,
+                    transform: "translateX(-50%)",
+                    color: markerColor,
+                    backgroundColor: "rgba(15, 23, 42, 0.92)",
+                    border: `1px solid ${markerColor}`,
+                    borderRadius: 9999,
+                    padding: "1px 6px",
+                    fontSize: 10,
+                    lineHeight: "14px",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    opacity: 0.95
+                  }}
+                >
+                  {chapter.label}
+                </span>
+              </button>
+            );
+          })}
           {Array.from({ length: tickCount + 1 }, (_, index) => {
             const percent = (index / tickCount) * 100;
             const isMajor = index % 4 === 0;
@@ -289,6 +370,53 @@ export default function TimeBar({
                 }}
                 aria-hidden
               />
+            );
+          })}
+          {chapters.map((chapter) => {
+            const left = (chapter.seconds / durationSeconds) * 100;
+            const markerColor = chapter.color ?? CHAPTER_MARKER_COLOR;
+            return (
+              <button
+                key={`chapter-track-${chapter.id}`}
+                type="button"
+                aria-label={`Jump to chapter ${chapter.label} at ${formatTime(chapter.seconds)}`}
+                title={`${chapter.label} (${formatTime(chapter.seconds)})`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (onChapterSelect) {
+                    onChapterSelect(chapter.id);
+                    return;
+                  }
+                  onSeek(chapter.seconds);
+                }}
+                onMouseDown={(event) => event.stopPropagation()}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  bottom: 0,
+                  left: `${left}%`,
+                  width: 18,
+                  transform: "translateX(-50%)",
+                  zIndex: 10,
+                  cursor: "pointer"
+                }}
+                className="group border-0 bg-transparent p-0"
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    left: "50%",
+                    top: 2,
+                    bottom: 2,
+                    width: 3,
+                    transform: "translateX(-50%)",
+                    backgroundColor: markerColor,
+                    borderRadius: 9999,
+                    boxShadow: "0 0 0 2px rgba(15, 23, 42, 0.75)"
+                  }}
+                  aria-hidden
+                />
+              </button>
             );
           })}
           {selectionStyle && (

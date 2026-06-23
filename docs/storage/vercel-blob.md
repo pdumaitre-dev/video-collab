@@ -1,6 +1,6 @@
 # Vercel Blob
 
-Videos are stored in Vercel Blob under the `videos/` prefix. Neon PostgreSQL (via Prisma in `lib/db.ts`) stores metadata and comments, not the video bytes.
+Videos are stored in Vercel Blob under the `videos/` prefix. Neon PostgreSQL (via Prisma in `lib/db.ts`) stores metadata, comments, and chapters, not the video bytes.
 
 ## Required Env
 
@@ -46,6 +46,14 @@ Videos are stored in Vercel Blob under the `videos/` prefix. Neon PostgreSQL (vi
 - `DELETE /api/blob/comments?id=<commentId>`
 - Comments are stored in `Comment_blob`, keyed by Blob pathname.
 
+### Chapters
+
+- `GET /api/blob/chapters?pathname=...`
+- `POST /api/blob/chapters` with `{ pathname, label, seconds, color? }`
+- `DELETE /api/blob/chapters?id=<chapterId>`
+- Chapters are stored in `Chapter_blob`, keyed by Blob pathname and ordered by `seconds`.
+- The UI adds chapters at the current playhead, renders timeline markers, and lists jump points above comments in the sidebar.
+
 ## Private Playback Tradeoff
 
 The private stream route does not support Range requests. To preserve seeking, `components/VideoPlayer.tsx` downloads the whole file, creates a blob URL, and plays from that local URL.
@@ -62,4 +70,5 @@ Use `BLOB_ACCESS=public` if direct Blob URLs are acceptable.
 - `app/api/blob/upload/route.ts`
 - `app/api/blob/stream/route.ts`
 - `app/api/blob/comments/route.ts`
+- `app/api/blob/chapters/route.ts`
 - `components/VideoPlayer.tsx`
