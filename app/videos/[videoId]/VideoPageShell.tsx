@@ -69,6 +69,7 @@ export default function VideoPageShell({
   >(null);
   const [isRangeLoopEnabled, setIsRangeLoopEnabled] = React.useState(true);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const skipLoopRewindRef = React.useRef(false);
 
   const activeLoopRange = React.useMemo<TimeRange | null>(() => {
     if (selectedRange) return selectedRange;
@@ -99,6 +100,7 @@ export default function VideoPageShell({
   }, [duration]);
 
   const handleSeek = React.useCallback((time: number) => {
+    skipLoopRewindRef.current = true;
     if (videoRef.current) {
       videoRef.current.currentTime = time;
     }
@@ -107,8 +109,12 @@ export default function VideoPageShell({
 
   const handleVideoTimeUpdate = React.useCallback(
     (time: number) => {
+      const skipLoopRewind = skipLoopRewindRef.current;
+      skipLoopRewindRef.current = false;
+
       const videoElement = videoRef.current;
       if (
+        !skipLoopRewind &&
         isRangeLoopEnabled &&
         activeLoopRange &&
         activeLoopRange.endSeconds > activeLoopRange.startSeconds &&
