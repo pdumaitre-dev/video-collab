@@ -112,15 +112,27 @@ export default function VideoPageShell({
   };
 
   const handleTimeUpdate = (time: number) => {
+    const isActuallyPlaying = Boolean(
+      videoRef.current && !videoRef.current.paused
+    );
     if (
       activeLoopRange &&
-      isPlaying &&
+      isActuallyPlaying &&
       time >= activeLoopRange.endSeconds
     ) {
       handleSeek(activeLoopRange.startSeconds);
       return;
     }
     setCurrentTime(time);
+  };
+
+  const handleEnded = () => {
+    if (activeLoopRange) {
+      handleSeek(activeLoopRange.startSeconds);
+      void startPlayback();
+      return;
+    }
+    setIsPlaying(false);
   };
 
   const startPlayback = async () => {
@@ -214,7 +226,7 @@ export default function VideoPageShell({
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={handleEnded}
           />
           <div className="flex items-center">
             <button
