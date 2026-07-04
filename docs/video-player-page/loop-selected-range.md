@@ -14,4 +14,6 @@
 
 - `activeLoopRange` (`useMemo` in `VideoPageShell.tsx`): the draft `selectedRange` if present, otherwise the selected comment's range.
 - `handleTimeUpdate`: wraps the `onTimeUpdate` callback from `VideoPlayer`; when `currentTime >= activeLoopRange.endSeconds` and looping is enabled, snaps `videoRef.current.currentTime` back to `activeLoopRange.startSeconds`.
-- Does not modify `VideoPlayer.tsx` or `TimeBar.tsx` (both out of scope per `style-reference.md`).
+- `handleEnded`: when playback reaches the file end (e.g. `endSeconds` equals duration) before `timeupdate` crosses the range end, rewinds to `activeLoopRange.startSeconds` and resumes playback instead of leaving the external control paused.
+- `isRangeDragging`: set via `TimeBar` `onRangeDragStart` / `onRangeDragEnd`; while true, `activeLoopRange` is null so an in-flight drag does not keep looping the previous selection.
+- `TimeBar` drag callbacks (`onRangeDragStart`, `onRangeDragEnd`) are optional; only `VideoPageShell` wires them for loop suppression during drag.

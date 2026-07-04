@@ -66,11 +66,13 @@ export default function VideoPageShell({
     number | null
   >(null);
   const [loopEnabled, setLoopEnabled] = React.useState(true);
+  const [isRangeDragging, setIsRangeDragging] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   /** Range to loop while active: the in-progress draft selection takes
    * precedence, otherwise the currently selected comment's range. */
   const activeLoopRange = React.useMemo(() => {
+    if (isRangeDragging) return null;
     if (selectedRange) return selectedRange;
     if (selectedCommentId != null) {
       const comment = comments.find((c) => c.id === selectedCommentId);
@@ -82,7 +84,7 @@ export default function VideoPageShell({
       }
     }
     return null;
-  }, [selectedRange, selectedCommentId, comments]);
+  }, [isRangeDragging, selectedRange, selectedCommentId, comments]);
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -121,6 +123,27 @@ export default function VideoPageShell({
       }
       setCurrentTime(activeLoopRange.startSeconds);
     }
+  };
+
+  /** Rewinds and resumes when playback reaches the file end before timeupdate catches the range end. */
+  const handleEnded = () => {
+    if (
+      loopEnabled &&
+      activeLoopRange &&
+      activeLoopRange.endSeconds > activeLoopRange.startSeconds
+    ) {
+      const videoElement = videoRef.current;
+      if (videoElement) {
+        videoElement.currentTime = activeLoopRange.startSeconds;
+        setCurrentTime(activeLoopRange.startSeconds);
+        void videoElement.play().catch((error) => {
+          console.error("Failed to resume range loop", error);
+          setIsPlaying(false);
+        });
+      }
+      return;
+    }
+    setIsPlaying(false);
   };
 
   const handleTogglePlayback = async () => {
@@ -201,7 +224,7 @@ export default function VideoPageShell({
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={handleEnded}
           />
           <div className="flex items-center">
             <button
@@ -244,6 +267,8 @@ export default function VideoPageShell({
               comments={comments}
               selectedRange={selectedRange}
               onSeek={handleSeek}
+              onRangeDragStart={() => setIsRangeDragging(true)}
+              onRangeDragEnd={() => setIsRangeDragging(false)}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
                 setSelectedCommentId(null);
                 setSelectedRange({
