@@ -128,7 +128,9 @@ export default function VideoPageShell({
 
   const handleReplyToComment = async (parentId: number, text: string) => {
     const parent = findComment(comments, parentId);
-    if (!parent) return;
+    if (!parent) {
+      throw new Error("Cannot save reply because the parent comment is missing.");
+    }
 
     const created = await persistComment(
       {
