@@ -48,6 +48,10 @@ Current runtime tables in `prisma/schema.prisma`:
 
 Current UI behavior uses `Video` and `Comment_blob`. The older `Comment` model is still present in the schema, but the active Blob-backed flow does not read from it.
 
+## Loop Selected Range
+
+`VideoPageShell.tsx` loops playback over the currently selected comment or in-progress drag selection, controlled by a "Loop range" toggle in the comments panel. See `video-player-page/loop-selected-range.md`.
+
 ## Playback Notes
 
 - `BLOB_ACCESS=public`: use direct Blob URLs.
