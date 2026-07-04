@@ -80,7 +80,22 @@ export default function VideoPageShell({
   }, [initialComments]);
 
   React.useEffect(() => {
-    setChapters(initialChapters);
+    setChapters((prev) => {
+      if (initialChapters.length === 0) {
+        return prev.length > 0 ? prev : initialChapters;
+      }
+      if (prev.length === 0) {
+        return initialChapters;
+      }
+      const serverIds = new Set(initialChapters.map((chapter) => chapter.id));
+      const localOnly = prev.filter((chapter) => !serverIds.has(chapter.id));
+      if (localOnly.length > 0) {
+        return [...initialChapters, ...localOnly].sort(
+          (a, b) => a.seconds - b.seconds
+        );
+      }
+      return initialChapters;
+    });
   }, [initialChapters]);
 
   const [currentTime, setCurrentTime] = React.useState(0);

@@ -38,6 +38,21 @@ export default function ChapterList({
     }
   };
 
+  const activeChapterId = React.useMemo(() => {
+    if (selectedChapterId !== null) return selectedChapterId;
+
+    let nearestId: number | null = null;
+    let nearestDistance = Infinity;
+    for (const chapter of chapters) {
+      const distance = Math.abs(currentTime - chapter.seconds);
+      if (distance <= 2 && distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestId = chapter.id;
+      }
+    }
+    return nearestId;
+  }, [chapters, currentTime, selectedChapterId]);
+
   if (chapters.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-white/[0.12] bg-surface-card/50 py-6 text-center">
@@ -52,10 +67,7 @@ export default function ChapterList({
   return (
     <ul className="space-y-2 text-sm">
       {chapters.map((chapter) => {
-        const isNearPlayhead = Math.abs(currentTime - chapter.seconds) <= 2;
-        const isSelected =
-          chapter.id === selectedChapterId ||
-          (selectedChapterId === null && isNearPlayhead);
+        const isSelected = chapter.id === activeChapterId;
         const isDeleting = deletingId === chapter.id;
         const markerColor = chapter.color ?? "#3b82f6";
 
