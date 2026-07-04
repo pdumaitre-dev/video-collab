@@ -2,7 +2,10 @@
 
 import * as React from "react";
 import VideoPageShell, {
+  type ChapterData,
+  type DeleteChapterFn,
   type CommentData,
+  type PersistChapterFn,
   type PersistCommentFn,
   type DeleteCommentFn
 } from "../../[videoId]/VideoPageShell";
@@ -44,6 +47,8 @@ export default function FileVideoPageShell({
 }: FileVideoPageShellProps) {
   const [initialComments, setInitialComments] =
     React.useState<CommentData[]>(() => []);
+  const [initialChapters, setInitialChapters] =
+    React.useState<ChapterData[]>(() => []);
 
   React.useEffect(() => {
     if (pathname) {
@@ -63,8 +68,26 @@ export default function FileVideoPageShell({
           );
         })
         .catch(() => setInitialComments([]));
+
+      fetch(
+        `/api/blob/chapters?pathname=${encodeURIComponent(pathname)}`
+      )
+        .then((res) => (res.ok ? res.json() : []))
+        .then((data: Array<{ id: number; label: string; seconds: number; color: string | null; createdAt: string }>) => {
+          setInitialChapters(
+            data.map((chapter) => ({
+              id: chapter.id,
+              label: chapter.label,
+              seconds: chapter.seconds,
+              color: chapter.color,
+              createdAt: chapter.createdAt
+            }))
+          );
+        })
+        .catch(() => setInitialChapters([]));
     } else {
       setInitialComments(loadCommentsFromStorage(sourceUrl));
+      setInitialChapters([]);
     }
   }, [pathname, sourceUrl]);
 
@@ -141,6 +164,65 @@ export default function FileVideoPageShell({
     [pathname, sourceUrl]
   );
 
+  const persistChapter: PersistChapterFn = React.useCallback(
+    async (label, seconds, durationSeconds) => {
+      if (!pathname) {
+        throw new Error("Chapters require a blob-backed video");
+      }
+
+      const res = await fetch("/api/blob/chapters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pathname,
+          label,
+          seconds,
+          durationSeconds
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Failed to create chapter");
+      }
+
+      const created = (await res.json()) as {
+        id: number;
+        label: string;
+        seconds: number;
+        color: string | null;
+        createdAt: string;
+      };
+
+      return {
+        id: created.id,
+        label: created.label,
+        seconds: created.seconds,
+        color: created.color,
+        createdAt: created.createdAt
+      };
+    },
+    [pathname]
+  );
+
+  const deleteChapter: DeleteChapterFn = React.useCallback(
+    async (chapterId: number) => {
+      if (!pathname) {
+        throw new Error("Chapters require a blob-backed video");
+      }
+
+      const res = await fetch(
+        `/api/blob/chapters?id=${chapterId}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Failed to delete chapter");
+      }
+    },
+    [pathname]
+  );
+
   return (
     <VideoPageShell
       video={{
@@ -149,8 +231,11 @@ export default function FileVideoPageShell({
         durationSeconds: null
       }}
       initialComments={initialComments}
+      initialChapters={initialChapters}
       persistComment={persistComment}
       deleteComment={deleteComment}
+      persistChapter={pathname ? persistChapter : undefined}
+      deleteChapter={pathname ? deleteChapter : undefined}
     />
   );
 }
