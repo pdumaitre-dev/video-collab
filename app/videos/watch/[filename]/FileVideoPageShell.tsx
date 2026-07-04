@@ -9,13 +9,23 @@ import VideoPageShell, {
 
 const STORAGE_PREFIX = "video-comments:";
 
+type SerializedComment = {
+  id: number;
+  startSeconds: number;
+  endSeconds: number;
+  text: string;
+  parentId?: number | null;
+  createdAt: string;
+  replies?: SerializedComment[];
+};
+
 function loadCommentsFromStorage(sourceUrl: string): CommentData[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_PREFIX + sourceUrl);
     if (!raw) return [];
-    const parsed = JSON.parse(raw) as CommentData[];
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(raw) as SerializedComment[];
+    return Array.isArray(parsed) ? parsed.map(normalizeComment) : [];
   } catch {
     return [];
   }
@@ -51,16 +61,8 @@ export default function FileVideoPageShell({
         `/api/blob/comments?pathname=${encodeURIComponent(pathname)}`
       )
         .then((res) => (res.ok ? res.json() : []))
-        .then((data: Array<{ id: number; startSeconds: number; endSeconds: number; text: string; createdAt: string }>) => {
-          setInitialComments(
-            data.map((c) => ({
-              id: c.id,
-              startSeconds: c.startSeconds,
-              endSeconds: c.endSeconds,
-              text: c.text,
-              createdAt: c.createdAt
-            }))
-          );
+        .then((data: SerializedComment[]) => {
+          setInitialComments(data.map(normalizeComment));
         })
         .catch(() => setInitialComments([]));
     } else {
@@ -69,7 +71,7 @@ export default function FileVideoPageShell({
   }, [pathname, sourceUrl]);
 
   const persistComment: PersistCommentFn = React.useCallback(
-    async (range, text) => {
+    async (range, text, parentId) => {
       if (pathname) {
         const res = await fetch("/api/blob/comments", {
           method: "POST",
@@ -78,7 +80,8 @@ export default function FileVideoPageShell({
             pathname,
             startSeconds: range.startSeconds,
             endSeconds: range.endSeconds,
-            text
+            text,
+            parentId
           })
         });
 
@@ -87,21 +90,9 @@ export default function FileVideoPageShell({
           throw new Error(err.error ?? "Failed to create comment");
         }
 
-        const created = (await res.json()) as {
-          id: number;
-          startSeconds: number;
-          endSeconds: number;
-          text: string;
-          createdAt: string;
-        };
+        const created = (await res.json()) as SerializedComment;
 
-        return {
-          id: created.id,
-          startSeconds: created.startSeconds,
-          endSeconds: created.endSeconds,
-          text: created.text,
-          createdAt: created.createdAt
-        };
+        return normalizeComment(created);
       }
 
       const current = loadCommentsFromStorage(sourceUrl);
@@ -110,11 +101,11 @@ export default function FileVideoPageShell({
         startSeconds: range.startSeconds,
         endSeconds: range.endSeconds,
         text,
-        createdAt: new Date().toISOString()
+        parentId: parentId ?? null,
+        createdAt: new Date().toISOString(),
+        replies: []
       };
-      const updated = [...current, newComment].sort(
-        (a, b) => a.startSeconds - b.startSeconds
-      );
+      const updated = insertComment(current, newComment);
       saveCommentsToStorage(sourceUrl, updated);
       return newComment;
     },
@@ -134,7 +125,7 @@ export default function FileVideoPageShell({
         }
       } else {
         const current = loadCommentsFromStorage(sourceUrl);
-        const updated = current.filter((c) => c.id !== commentId);
+        const updated = removeComment(current, commentId);
         saveCommentsToStorage(sourceUrl, updated);
       }
     },
@@ -153,4 +144,80 @@ export default function FileVideoPageShell({
       deleteComment={deleteComment}
     />
   );
+}
+
+function normalizeComment(comment: SerializedComment): CommentData {
+  return {
+    id: comment.id,
+    startSeconds: comment.startSeconds,
+    endSeconds: comment.endSeconds,
+    text: comment.text,
+    parentId: comment.parentId ?? null,
+    createdAt: comment.createdAt,
+    replies: (comment.replies ?? []).map(normalizeComment)
+  };
+}
+
+function insertComment(comments: CommentData[], comment: CommentData): CommentData[] {
+  const [nextComments, inserted] = insertCommentWithStatus(comments, comment);
+  return inserted ? nextComments : sortComments([...comments, comment]);
+}
+
+function insertCommentWithStatus(
+  comments: CommentData[],
+  comment: CommentData
+): [CommentData[], boolean] {
+  if (comment.parentId === null) {
+    return [sortComments([...comments, comment]), true];
+  }
+
+  let inserted = false;
+  const nextComments = comments.map((current) => {
+    if (current.id === comment.parentId) {
+      inserted = true;
+      return {
+        ...current,
+        replies: sortComments([...current.replies, comment])
+      };
+    }
+
+    const [nextReplies, childInserted] = insertCommentWithStatus(
+      current.replies,
+      comment
+    );
+    inserted = inserted || childInserted;
+    return {
+      ...current,
+      replies: nextReplies
+    };
+  });
+
+  return [nextComments, inserted];
+}
+
+function removeComment(comments: CommentData[], commentId: number): CommentData[] {
+  return comments
+    .filter((comment) => comment.id !== commentId)
+    .map((comment) => ({
+      ...comment,
+      replies: removeComment(comment.replies, commentId)
+    }));
+}
+
+function sortComments(comments: CommentData[]): CommentData[] {
+  return [...comments]
+    .sort((a, b) => {
+      const byStart = a.startSeconds - b.startSeconds;
+      if (byStart !== 0) return byStart;
+
+      const byCreatedAt =
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (byCreatedAt !== 0) return byCreatedAt;
+
+      return a.id - b.id;
+    })
+    .map((comment) => ({
+      ...comment,
+      replies: sortComments(comment.replies)
+    }));
 }
