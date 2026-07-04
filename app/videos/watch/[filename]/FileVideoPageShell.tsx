@@ -51,6 +51,8 @@ export default function FileVideoPageShell({
     React.useState<ChapterData[]>(() => []);
 
   React.useEffect(() => {
+    const chaptersController = new AbortController();
+
     if (pathname) {
       fetch(
         `/api/blob/comments?pathname=${encodeURIComponent(pathname)}`
@@ -70,7 +72,8 @@ export default function FileVideoPageShell({
         .catch(() => setInitialComments([]));
 
       fetch(
-        `/api/blob/chapters?pathname=${encodeURIComponent(pathname)}`
+        `/api/blob/chapters?pathname=${encodeURIComponent(pathname)}`,
+        { signal: chaptersController.signal }
       )
         .then((res) => (res.ok ? res.json() : []))
         .then((data: Array<{ id: number; label: string; seconds: number; color?: string | null }>) => {
@@ -83,11 +86,17 @@ export default function FileVideoPageShell({
             }))
           );
         })
-        .catch(() => setInitialChapters([]));
+        .catch((err) => {
+          if (err.name !== "AbortError") {
+            setInitialChapters([]);
+          }
+        });
     } else {
       setInitialComments(loadCommentsFromStorage(sourceUrl));
       setInitialChapters([]);
     }
+
+    return () => chaptersController.abort();
   }, [pathname, sourceUrl]);
 
   const persistComment: PersistCommentFn = React.useCallback(

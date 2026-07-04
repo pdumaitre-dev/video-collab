@@ -75,9 +75,7 @@ export default function VideoPageShell({
   }, [initialComments]);
 
   React.useEffect(() => {
-    if (initialChapters.length > 0) {
-      setChapters(initialChapters);
-    }
+    setChapters(initialChapters);
   }, [initialChapters]);
 
   const [currentTime, setCurrentTime] = React.useState(0);
