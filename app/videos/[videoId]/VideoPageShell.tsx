@@ -65,7 +65,28 @@ export default function VideoPageShell({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
+  const [loopEnabled, setLoopEnabled] = React.useState(true);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  // The range currently driving loop playback: an in-progress selection takes
+  // priority, otherwise the selected comment's range. Selecting a range and
+  // selecting a comment are kept mutually exclusive (see handlers below).
+  const activeLoopRange = React.useMemo<{
+    startSeconds: number;
+    endSeconds: number;
+  } | null>(() => {
+    if (selectedRange) return selectedRange;
+    if (selectedCommentId !== null) {
+      const comment = comments.find((c) => c.id === selectedCommentId);
+      if (comment) {
+        return {
+          startSeconds: comment.startSeconds,
+          endSeconds: comment.endSeconds
+        };
+      }
+    }
+    return null;
+  }, [selectedRange, selectedCommentId, comments]);
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -86,6 +107,15 @@ export default function VideoPageShell({
   const handleSeek = (time: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
+    }
+    setCurrentTime(time);
+  };
+
+  const handleTimeUpdate = (time: number) => {
+    // Loop back to the start of the active range once playback reaches its end.
+    if (loopEnabled && activeLoopRange && time >= activeLoopRange.endSeconds) {
+      handleSeek(activeLoopRange.startSeconds);
+      return;
     }
     setCurrentTime(time);
   };
@@ -136,10 +166,20 @@ export default function VideoPageShell({
   };
 
   const handleSelectComment = (commentId: number) => {
+    // Selecting a comment dismisses any in-progress range selection so the
+    // comment's range becomes the sole loop target.
+    setSelectedRange(null);
     setSelectedCommentId(commentId);
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
+      // Start playback so the loop is immediately observable.
+      const videoElement = videoRef.current;
+      if (videoElement && videoElement.paused) {
+        videoElement.play().catch((error) => {
+          console.error("Failed to start playback", error);
+        });
+      }
     }
   };
 
@@ -158,7 +198,7 @@ export default function VideoPageShell({
           <VideoPlayer
             src={video.sourceUrl}
             videoRef={videoRef}
-            onTimeUpdate={setCurrentTime}
+            onTimeUpdate={handleTimeUpdate}
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
@@ -206,6 +246,9 @@ export default function VideoPageShell({
               selectedRange={selectedRange}
               onSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
+                // A new range selection dismisses any selected comment so the
+                // fresh range becomes the sole loop target.
+                setSelectedCommentId(null);
                 setSelectedRange({
                   startSeconds: rangeStartSeconds,
                   endSeconds: rangeEndSeconds
@@ -221,9 +264,32 @@ export default function VideoPageShell({
         </div>
       </div>
       <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
-        <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
-          Comments
-        </h3>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="font-heading text-sm font-semibold tracking-tight text-fg-primary">
+            Comments
+          </h3>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={loopEnabled}
+            aria-label="Loop range"
+            onClick={() => setLoopEnabled((prev) => !prev)}
+            className="group flex cursor-pointer select-none items-center gap-2 text-xs font-medium text-fg-secondary transition-colors hover:text-fg-primary focus-visible:outline-none"
+          >
+            <span>Loop range</span>
+            <span
+              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors group-focus-visible:ring-2 group-focus-visible:ring-accent group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-surface-panel ${
+                loopEnabled ? "bg-accent" : "bg-surface-elevated"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                  loopEnabled ? "translate-x-4" : "translate-x-0.5"
+                }`}
+              />
+            </span>
+          </button>
+        </div>
         <CommentList
           comments={comments}
           selectedCommentId={selectedCommentId}
