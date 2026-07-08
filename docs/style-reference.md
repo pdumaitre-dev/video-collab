@@ -117,6 +117,13 @@ surface-page (deepest)
 - Selected: `border-accent`, `bg-accent-muted`, `ring-1 ring-accent/30`.
 - Metadata (time range, created): `font-mono`, `text-fg-muted`, `text-[11px]`.
 
+## Chapters
+
+- Chapters share the right `bg-surface-panel` column and sit above Comments with a subtle `border-t` separator before the comments list.
+- Add form: compact `bg-surface-card` panel with label input, optional color select, and an accent "Add at <time>" action.
+- Chapter list items: card-style rows matching comments. Selected row uses `border-accent`, `bg-accent-muted`, and `ring-1 ring-accent/30`.
+- Timeline markers: colored single-time ticks on `TimeBar` using the chapter color (default accent blue). Markers are clickable jump targets and must not interfere with drag range selection.
+
 ## Depth and Feel (Without Images)
 
 - **Layered surfaces**: Use page → panel → card → elevated hierarchy.

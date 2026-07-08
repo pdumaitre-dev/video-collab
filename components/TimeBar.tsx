@@ -8,6 +8,13 @@ type CommentRange = {
   endSeconds: number;
 };
 
+type ChapterMarker = {
+  id: number;
+  seconds: number;
+  label: string;
+  color: string | null;
+};
+
 interface SelectedRange {
   startSeconds: number;
   endSeconds: number;
@@ -17,6 +24,7 @@ interface TimeBarProps {
   durationSeconds: number;
   currentTime: number;
   comments?: CommentRange[];
+  chapters?: ChapterMarker[];
   /** Persisted selection from parent; shown until comment is submitted */
   selectedRange?: SelectedRange | null;
   onSeek: (timeSeconds: number) => void;
@@ -46,6 +54,7 @@ export default function TimeBar({
   durationSeconds,
   currentTime,
   comments = [],
+  chapters = [],
   selectedRange = null,
   onSeek,
   onRangeSelected
@@ -117,6 +126,12 @@ export default function TimeBar({
   const playedRatio =
     durationSeconds > 0 ? Math.min(currentTime / durationSeconds, 1) : 0;
   const cursorOffsetPercent = playedRatio * 100;
+  const visibleChapters = chapters.filter(
+    (chapter) =>
+      Number.isFinite(chapter.seconds) &&
+      chapter.seconds >= 0 &&
+      chapter.seconds <= durationSeconds
+  );
 
   /** Live drag selection takes precedence; when not dragging, show persisted selectedRange */
   const displayRange =
@@ -212,6 +227,64 @@ export default function TimeBar({
               />
             );
           })}
+          {visibleChapters.map((chapter) => {
+            const left = (chapter.seconds / durationSeconds) * 100;
+            const markerColor = chapter.color ?? "#3b82f6";
+
+            return (
+              <button
+                key={`chapter-ruler-${chapter.id}`}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSeek(chapter.seconds);
+                }}
+                onMouseDown={(event) => {
+                  event.stopPropagation();
+                }}
+                title={`${chapter.label} (${formatTime(chapter.seconds)})`}
+                aria-label={`Jump to chapter ${chapter.label} at ${formatTime(chapter.seconds)}`}
+                style={{
+                  position: "absolute",
+                  left: `${left}%`,
+                  top: 2,
+                  width: 10,
+                  height: 22,
+                  transform: "translateX(-50%)",
+                  zIndex: 12,
+                  border: 0,
+                  padding: 0,
+                  background: "transparent",
+                  cursor: "pointer"
+                }}
+              >
+                <span
+                  style={{
+                    display: "block",
+                    width: 0,
+                    height: 0,
+                    margin: "0 auto",
+                    borderLeft: "5px solid transparent",
+                    borderRight: "5px solid transparent",
+                    borderTop: `8px solid ${markerColor}`,
+                    filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))"
+                  }}
+                  aria-hidden
+                />
+                <span
+                  style={{
+                    display: "block",
+                    width: 2,
+                    height: 13,
+                    margin: "0 auto",
+                    backgroundColor: markerColor,
+                    boxShadow: "0 0 0 1px rgba(255,255,255,0.2)"
+                  }}
+                  aria-hidden
+                />
+              </button>
+            );
+          })}
           <span
             style={{
               position: "absolute",
@@ -289,6 +362,52 @@ export default function TimeBar({
                 }}
                 aria-hidden
               />
+            );
+          })}
+          {visibleChapters.map((chapter) => {
+            const left = (chapter.seconds / durationSeconds) * 100;
+            const markerColor = chapter.color ?? "#3b82f6";
+
+            return (
+              <button
+                key={`chapter-track-${chapter.id}`}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSeek(chapter.seconds);
+                }}
+                onMouseDown={(event) => {
+                  event.stopPropagation();
+                }}
+                title={`${chapter.label} (${formatTime(chapter.seconds)})`}
+                aria-label={`Jump to chapter ${chapter.label} at ${formatTime(chapter.seconds)}`}
+                style={{
+                  position: "absolute",
+                  top: 2,
+                  bottom: 2,
+                  left: `${left}%`,
+                  width: 12,
+                  transform: "translateX(-50%)",
+                  border: 0,
+                  padding: 0,
+                  background: "transparent",
+                  cursor: "pointer",
+                  zIndex: 10
+                }}
+              >
+                <span
+                  style={{
+                    display: "block",
+                    width: 4,
+                    height: "100%",
+                    margin: "0 auto",
+                    borderRadius: 9999,
+                    backgroundColor: markerColor,
+                    boxShadow: "0 0 0 1px rgba(255,255,255,0.3), 0 2px 8px rgba(0,0,0,0.4)"
+                  }}
+                  aria-hidden
+                />
+              </button>
             );
           })}
           {selectionStyle && (

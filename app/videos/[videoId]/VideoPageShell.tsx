@@ -5,6 +5,9 @@ import VideoPlayer from "@/components/VideoPlayer";
 import TimeBar from "@/components/TimeBar";
 import CommentList from "@/components/CommentList";
 import CommentForm from "@/components/CommentForm";
+import ChapterList, { type ChapterData } from "@/components/ChapterList";
+
+export type { ChapterData };
 
 export type CommentData = {
   id: number;
@@ -29,24 +32,56 @@ export type PersistCommentFn = (
 
 export type DeleteCommentFn = (commentId: number) => Promise<void>;
 
+export type PersistChapterFn = (chapter: {
+  label: string;
+  seconds: number;
+  color: string;
+  durationSeconds: number;
+}) => Promise<ChapterData>;
+
+export type UpdateChapterFn = (
+  chapterId: number,
+  chapter: {
+    label: string;
+    seconds: number;
+    color: string;
+    durationSeconds: number;
+  }
+) => Promise<ChapterData>;
+
+export type DeleteChapterFn = (chapterId: number) => Promise<void>;
+
 interface VideoPageShellProps {
   video: VideoForClient;
   initialComments: CommentData[];
+  initialChapters: ChapterData[];
   /** Persists comments (e.g. to blob storage or localStorage) */
   persistComment: PersistCommentFn;
   /** Deletes a comment by ID */
   deleteComment: DeleteCommentFn;
+  /** Persists a named timeline chapter */
+  persistChapter: PersistChapterFn;
+  /** Updates a named timeline chapter */
+  updateChapter: UpdateChapterFn;
+  /** Deletes a named timeline chapter */
+  deleteChapter: DeleteChapterFn;
 }
 
 export default function VideoPageShell({
   video,
   initialComments,
+  initialChapters,
   persistComment,
-  deleteComment
+  deleteComment,
+  persistChapter,
+  updateChapter,
+  deleteChapter
 }: VideoPageShellProps) {
   const [comments, setComments] = React.useState<CommentData[]>(initialComments);
+  const [chapters, setChapters] =
+    React.useState<ChapterData[]>(initialChapters);
 
-  // Sync when parent loads comments after mount (e.g. FileVideoPageShell loading from localStorage)
+  // Sync when parent loads timeline data after mount (e.g. FileVideoPageShell).
   React.useEffect(() => {
     if (initialComments.length > 0) {
       setComments(initialComments);
@@ -65,7 +100,14 @@ export default function VideoPageShell({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
+  const [selectedChapterId, setSelectedChapterId] = React.useState<
+    number | null
+  >(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  React.useEffect(() => {
+    setChapters(initialChapters);
+  }, [initialChapters]);
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -135,11 +177,63 @@ export default function VideoPageShell({
     }
   };
 
+  const handleCreateChapter = async ({
+    label,
+    color
+  }: {
+    label: string;
+    color: string;
+  }) => {
+    const seconds = Math.max(0, Math.min(currentTime, duration));
+    const created = await persistChapter({
+      label,
+      seconds,
+      color,
+      durationSeconds: duration
+    });
+    setChapters((prev) =>
+      [...prev, created].sort((a, b) => a.seconds - b.seconds)
+    );
+    setSelectedChapterId(created.id);
+    handleSeek(created.seconds);
+  };
+
+  const handleUpdateChapter = async (
+    chapterId: number,
+    chapter: { label: string; color: string; seconds: number }
+  ) => {
+    const updated = await updateChapter(chapterId, {
+      ...chapter,
+      durationSeconds: duration
+    });
+    setChapters((prev) =>
+      prev
+        .map((item) => (item.id === chapterId ? updated : item))
+        .sort((a, b) => a.seconds - b.seconds)
+    );
+  };
+
+  const handleDeleteChapter = async (chapterId: number) => {
+    await deleteChapter(chapterId);
+    setChapters((prev) => prev.filter((chapter) => chapter.id !== chapterId));
+    if (selectedChapterId === chapterId) {
+      setSelectedChapterId(null);
+    }
+  };
+
   const handleSelectComment = (commentId: number) => {
     setSelectedCommentId(commentId);
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
+    }
+  };
+
+  const handleSelectChapter = (chapterId: number) => {
+    setSelectedChapterId(chapterId);
+    const chapter = chapters.find((item) => item.id === chapterId);
+    if (chapter) {
+      handleSeek(chapter.seconds);
     }
   };
 
@@ -203,6 +297,7 @@ export default function VideoPageShell({
               durationSeconds={duration}
               currentTime={currentTime}
               comments={comments}
+              chapters={chapters}
               selectedRange={selectedRange}
               onSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
@@ -220,16 +315,28 @@ export default function VideoPageShell({
           />
         </div>
       </div>
-      <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
-        <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
-          Comments
-        </h3>
-        <CommentList
-          comments={comments}
-          selectedCommentId={selectedCommentId}
-          onSelect={handleSelectComment}
-          onDelete={handleDeleteComment}
+      <div className="flex h-full flex-col gap-5 rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
+        <ChapterList
+          chapters={chapters}
+          currentTime={currentTime}
+          durationSeconds={duration}
+          onCreate={handleCreateChapter}
+          onUpdate={handleUpdateChapter}
+          onDelete={handleDeleteChapter}
+          onSelect={handleSelectChapter}
+          selectedChapterId={selectedChapterId}
         />
+        <div className="min-h-0 flex-1 border-t border-white/[0.08] pt-4">
+          <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
+            Comments
+          </h3>
+          <CommentList
+            comments={comments}
+            selectedCommentId={selectedCommentId}
+            onSelect={handleSelectComment}
+            onDelete={handleDeleteComment}
+          />
+        </div>
       </div>
     </div>
   );
