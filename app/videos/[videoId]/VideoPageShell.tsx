@@ -29,6 +29,36 @@ export type PersistCommentFn = (
 
 export type DeleteCommentFn = (commentId: number) => Promise<void>;
 
+type LoopRange = { startSeconds: number; endSeconds: number };
+
+function resolveActiveLoopRange(
+  loopEnabled: boolean,
+  commentId: number | null,
+  range: LoopRange | null,
+  commentList: CommentData[]
+): LoopRange | null {
+  if (!loopEnabled) return null;
+
+  if (commentId !== null) {
+    const comment = commentList.find((c) => c.id === commentId);
+    if (comment) {
+      return {
+        startSeconds: comment.startSeconds,
+        endSeconds: comment.endSeconds
+      };
+    }
+  }
+
+  if (range) {
+    return {
+      startSeconds: range.startSeconds,
+      endSeconds: range.endSeconds
+    };
+  }
+
+  return null;
+}
+
 interface VideoPageShellProps {
   video: VideoForClient;
   initialComments: CommentData[];
@@ -68,28 +98,18 @@ export default function VideoPageShell({
   const [loopRangeEnabled, setLoopRangeEnabled] = React.useState(true);
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
-  const activeLoopRange = React.useMemo(() => {
-    if (!loopRangeEnabled) return null;
-
-    if (selectedCommentId !== null) {
-      const comment = comments.find((c) => c.id === selectedCommentId);
-      if (comment) {
-        return {
-          startSeconds: comment.startSeconds,
-          endSeconds: comment.endSeconds
-        };
-      }
-    }
-
-    if (selectedRange) {
-      return {
-        startSeconds: selectedRange.startSeconds,
-        endSeconds: selectedRange.endSeconds
-      };
-    }
-
-    return null;
-  }, [comments, loopRangeEnabled, selectedCommentId, selectedRange]);
+  const activeLoopRange = React.useMemo(
+    () =>
+      resolveActiveLoopRange(
+        loopRangeEnabled,
+        selectedCommentId,
+        selectedRange,
+        comments
+      ),
+    [comments, loopRangeEnabled, selectedCommentId, selectedRange]
+  );
+  const activeLoopRangeRef = React.useRef(activeLoopRange);
+  activeLoopRangeRef.current = activeLoopRange;
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -115,8 +135,9 @@ export default function VideoPageShell({
   };
 
   const handleTimeUpdate = (time: number) => {
-    if (activeLoopRange && isPlaying && time >= activeLoopRange.endSeconds) {
-      handleSeek(activeLoopRange.startSeconds);
+    const loopRange = activeLoopRangeRef.current;
+    if (loopRange && isPlaying && time >= loopRange.endSeconds) {
+      handleSeek(loopRange.startSeconds);
       return;
     }
 
@@ -182,6 +203,12 @@ export default function VideoPageShell({
   const handleSelectComment = (commentId: number) => {
     if (selectedCommentId === commentId) {
       setSelectedCommentId(null);
+      activeLoopRangeRef.current = resolveActiveLoopRange(
+        loopRangeEnabled,
+        null,
+        selectedRange,
+        comments
+      );
       return;
     }
 
@@ -189,6 +216,12 @@ export default function VideoPageShell({
     setSelectedRange(null);
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
+      activeLoopRangeRef.current = resolveActiveLoopRange(
+        loopRangeEnabled,
+        commentId,
+        null,
+        comments
+      );
       handleSeek(comment.startSeconds);
       if (loopRangeEnabled) {
         void startPlayback();
@@ -260,10 +293,17 @@ export default function VideoPageShell({
               onSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
                 setSelectedCommentId(null);
-                setSelectedRange({
+                const newRange = {
                   startSeconds: rangeStartSeconds,
                   endSeconds: rangeEndSeconds
-                });
+                };
+                setSelectedRange(newRange);
+                activeLoopRangeRef.current = resolveActiveLoopRange(
+                  loopRangeEnabled,
+                  null,
+                  newRange,
+                  comments
+                );
                 handleSeek(dragEndSeconds);
                 if (loopRangeEnabled) {
                   void startPlayback();
