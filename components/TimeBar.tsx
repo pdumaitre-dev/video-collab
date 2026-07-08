@@ -247,11 +247,11 @@ export default function TimeBar({
                 style={{
                   position: "absolute",
                   left: `${left}%`,
-                  top: 2,
-                  width: 10,
-                  height: 22,
+                  top: -9,
+                  width: 18,
+                  height: 40,
                   transform: "translateX(-50%)",
-                  zIndex: 12,
+                  zIndex: 24,
                   border: 0,
                   padding: 0,
                   background: "transparent",
@@ -261,24 +261,25 @@ export default function TimeBar({
                 <span
                   style={{
                     display: "block",
-                    width: 0,
-                    height: 0,
+                    width: 12,
+                    height: 12,
                     margin: "0 auto",
-                    borderLeft: "5px solid transparent",
-                    borderRight: "5px solid transparent",
-                    borderTop: `8px solid ${markerColor}`,
-                    filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))"
+                    borderRadius: 3,
+                    border: "2px solid rgba(255,255,255,0.9)",
+                    backgroundColor: markerColor,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.55)",
+                    transform: "rotate(45deg)"
                   }}
                   aria-hidden
                 />
                 <span
                   style={{
                     display: "block",
-                    width: 2,
-                    height: 13,
+                    width: 3,
+                    height: 27,
                     margin: "0 auto",
                     backgroundColor: markerColor,
-                    boxShadow: "0 0 0 1px rgba(255,255,255,0.2)"
+                    boxShadow: "0 0 0 1px rgba(255,255,255,0.45), 0 2px 8px rgba(0,0,0,0.45)"
                   }}
                   aria-hidden
                 />
@@ -392,18 +393,19 @@ export default function TimeBar({
                   padding: 0,
                   background: "transparent",
                   cursor: "pointer",
-                  zIndex: 10
+                  zIndex: 18
                 }}
               >
                 <span
                   style={{
                     display: "block",
-                    width: 4,
+                    width: 6,
                     height: "100%",
                     margin: "0 auto",
                     borderRadius: 9999,
                     backgroundColor: markerColor,
-                    boxShadow: "0 0 0 1px rgba(255,255,255,0.3), 0 2px 8px rgba(0,0,0,0.4)"
+                    border: "1px solid rgba(255,255,255,0.85)",
+                    boxShadow: "0 0 0 1px rgba(0,0,0,0.35), 0 2px 10px rgba(0,0,0,0.55)"
                   }}
                   aria-hidden
                 />
