@@ -224,9 +224,7 @@ export default function VideoPageShell({
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
-      if (isLoopEnabled) {
-        void startPlayback();
-      }
+      void startPlayback();
     }
   };
 
@@ -299,9 +297,7 @@ export default function VideoPageShell({
                   endSeconds: rangeEndSeconds
                 });
                 handleSeek(dragEndSeconds);
-                if (isLoopEnabled) {
-                  void startPlayback();
-                }
+                void startPlayback();
               }}
             />
           </div>
