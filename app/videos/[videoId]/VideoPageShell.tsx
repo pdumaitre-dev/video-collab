@@ -120,6 +120,22 @@ export default function VideoPageShell({
     setCurrentTime(time);
   };
 
+  const handleEnded = () => {
+    // When the range end is at or beyond the file duration, timeupdate may never
+    // reach endSeconds before the media ends — rewind and continue looping.
+    if (loopEnabled && activeLoopRange) {
+      handleSeek(activeLoopRange.startSeconds);
+      const videoElement = videoRef.current;
+      if (videoElement) {
+        videoElement.play().catch((error) => {
+          console.error("Failed to restart loop playback", error);
+        });
+      }
+      return;
+    }
+    setIsPlaying(false);
+  };
+
   const handleTogglePlayback = async () => {
     const videoElement = videoRef.current;
     if (!videoElement) return;
@@ -202,7 +218,7 @@ export default function VideoPageShell({
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={handleEnded}
           />
           <div className="flex items-center">
             <button
