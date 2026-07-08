@@ -104,9 +104,41 @@ export default function VideoPageShell({
     number | null
   >(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const locallyChangedChapterIdsRef = React.useRef<Set<number>>(new Set());
 
   React.useEffect(() => {
-    setChapters(initialChapters);
+    setChapters((currentChapters) => {
+      if (locallyChangedChapterIdsRef.current.size === 0) {
+        return initialChapters;
+      }
+
+      const locallyChangedChapterIds = locallyChangedChapterIdsRef.current;
+      const currentChapterIds = new Set(
+        currentChapters.map((chapter) => chapter.id)
+      );
+      const nextChaptersById = new Map(
+        initialChapters.map((chapter) => [chapter.id, chapter] as const)
+      );
+
+      currentChapters.forEach((chapter) => {
+        if (
+          locallyChangedChapterIds.has(chapter.id) ||
+          !nextChaptersById.has(chapter.id)
+        ) {
+          nextChaptersById.set(chapter.id, chapter);
+        }
+      });
+
+      locallyChangedChapterIds.forEach((chapterId) => {
+        if (!currentChapterIds.has(chapterId)) {
+          nextChaptersById.delete(chapterId);
+        }
+      });
+
+      return Array.from(nextChaptersById.values()).sort(
+        (a, b) => a.seconds - b.seconds
+      );
+    });
   }, [initialChapters]);
 
   React.useEffect(() => {
@@ -191,6 +223,7 @@ export default function VideoPageShell({
       color,
       durationSeconds: duration
     });
+    locallyChangedChapterIdsRef.current.add(created.id);
     setChapters((prev) =>
       [...prev, created].sort((a, b) => a.seconds - b.seconds)
     );
@@ -206,6 +239,7 @@ export default function VideoPageShell({
       ...chapter,
       durationSeconds: duration
     });
+    locallyChangedChapterIdsRef.current.add(updated.id);
     setChapters((prev) =>
       prev
         .map((item) => (item.id === chapterId ? updated : item))
@@ -215,6 +249,7 @@ export default function VideoPageShell({
 
   const handleDeleteChapter = async (chapterId: number) => {
     await deleteChapter(chapterId);
+    locallyChangedChapterIdsRef.current.add(chapterId);
     setChapters((prev) => prev.filter((chapter) => chapter.id !== chapterId));
     if (selectedChapterId === chapterId) {
       setSelectedChapterId(null);
