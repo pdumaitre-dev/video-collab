@@ -13,6 +13,22 @@ import VideoPageShell, {
 const COMMENT_STORAGE_PREFIX = "video-comments:";
 const CHAPTER_STORAGE_PREFIX = "video-chapters:";
 
+type BlobCommentData = {
+  id: number;
+  startSeconds: number;
+  endSeconds: number;
+  text: string;
+  createdAt: string;
+};
+
+type BlobChapterData = {
+  id: number;
+  label: string;
+  seconds: number;
+  color: string | null;
+  createdAt: string;
+};
+
 function loadCommentsFromStorage(sourceUrl: string): CommentData[] {
   if (typeof window === "undefined") return [];
   try {
@@ -81,52 +97,42 @@ export default function FileVideoPageShell({
   React.useEffect(() => {
     if (pathname) {
       const encodedPathname = encodeURIComponent(pathname);
-      Promise.all([
-        fetch(`/api/blob/comments?pathname=${encodedPathname}`).then((res) =>
-          res.ok ? res.json() : []
+      Promise.allSettled([
+        fetch(`/api/blob/comments?pathname=${encodedPathname}`).then(
+          async (res) => (res.ok ? ((await res.json()) as BlobCommentData[]) : [])
         ),
-        fetch(`/api/blob/chapters?pathname=${encodedPathname}`).then((res) =>
-          res.ok ? res.json() : []
+        fetch(`/api/blob/chapters?pathname=${encodedPathname}`).then(
+          async (res) => (res.ok ? ((await res.json()) as BlobChapterData[]) : [])
         )
       ])
-        .then(([commentsData, chaptersData]: [
-          Array<{
-            id: number;
-            startSeconds: number;
-            endSeconds: number;
-            text: string;
-            createdAt: string;
-          }>,
-          Array<{
-            id: number;
-            label: string;
-            seconds: number;
-            color: string | null;
-            createdAt: string;
-          }>
-        ]) => {
-          setInitialComments(
-            commentsData.map((c) => ({
-              id: c.id,
-              startSeconds: c.startSeconds,
-              endSeconds: c.endSeconds,
-              text: c.text,
-              createdAt: c.createdAt
-            }))
-          );
-          setInitialChapters(
-            chaptersData.map((chapter) => ({
-              id: chapter.id,
-              label: chapter.label,
-              seconds: chapter.seconds,
-              color: chapter.color,
-              createdAt: chapter.createdAt
-            }))
-          );
-        })
-        .catch(() => {
-          setInitialComments([]);
-          setInitialChapters([]);
+        .then(([commentsResult, chaptersResult]) => {
+          if (commentsResult.status === "fulfilled") {
+            const commentsData = commentsResult.value;
+
+            setInitialComments(
+              commentsData.map((c) => ({
+                id: c.id,
+                startSeconds: c.startSeconds,
+                endSeconds: c.endSeconds,
+                text: c.text,
+                createdAt: c.createdAt
+              }))
+            );
+          }
+
+          if (chaptersResult.status === "fulfilled") {
+            const chaptersData = chaptersResult.value;
+
+            setInitialChapters(
+              chaptersData.map((chapter) => ({
+                id: chapter.id,
+                label: chapter.label,
+                seconds: chapter.seconds,
+                color: chapter.color,
+                createdAt: chapter.createdAt
+              }))
+            );
+          }
         });
     } else {
       setInitialComments(loadCommentsFromStorage(sourceUrl));

@@ -76,10 +76,12 @@ export default function VideoPageShell({
 
   // Sync when parent loads persisted annotations after mount.
   React.useEffect(() => {
+    if (initialComments.length === 0) return;
     setComments(initialComments);
   }, [initialComments]);
 
   React.useEffect(() => {
+    if (initialChapters.length === 0) return;
     setChapters(initialChapters);
   }, [initialChapters]);
 
