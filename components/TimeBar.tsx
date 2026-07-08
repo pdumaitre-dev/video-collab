@@ -8,6 +8,13 @@ type CommentRange = {
   endSeconds: number;
 };
 
+type ChapterMarker = {
+  id: number;
+  label: string;
+  seconds: number;
+  color?: string | null;
+};
+
 interface SelectedRange {
   startSeconds: number;
   endSeconds: number;
@@ -17,6 +24,7 @@ interface TimeBarProps {
   durationSeconds: number;
   currentTime: number;
   comments?: CommentRange[];
+  chapters?: ChapterMarker[];
   /** Persisted selection from parent; shown until comment is submitted */
   selectedRange?: SelectedRange | null;
   onSeek: (timeSeconds: number) => void;
@@ -46,6 +54,7 @@ export default function TimeBar({
   durationSeconds,
   currentTime,
   comments = [],
+  chapters = [],
   selectedRange = null,
   onSeek,
   onRangeSelected
@@ -212,6 +221,33 @@ export default function TimeBar({
               />
             );
           })}
+          {chapters.map((chapter) => {
+            const left =
+              (Math.min(Math.max(chapter.seconds, 0), durationSeconds) /
+                durationSeconds) *
+              100;
+            const color = chapter.color ?? "#f59e0b";
+
+            return (
+              <div
+                key={`ruler-chapter-${chapter.id}`}
+                title={chapter.label}
+                style={{
+                  position: "absolute",
+                  left: `${left}%`,
+                  top: 0,
+                  bottom: 0,
+                  width: 2,
+                  backgroundColor: color,
+                  boxShadow: `0 0 0 1px rgba(15, 23, 42, 0.85), 0 0 8px ${color}`,
+                  transform: "translateX(-1px)",
+                  zIndex: 9,
+                  pointerEvents: "none"
+                }}
+                aria-hidden
+              />
+            );
+          })}
           <span
             style={{
               position: "absolute",
@@ -286,6 +322,34 @@ export default function TimeBar({
                   border: `3px solid ${GREEN_RANGE_BORDER}`,
                   borderRadius: 9999,
                   zIndex: 5
+                }}
+                aria-hidden
+              />
+            );
+          })}
+          {chapters.map((chapter) => {
+            const left =
+              (Math.min(Math.max(chapter.seconds, 0), durationSeconds) /
+                durationSeconds) *
+              100;
+            const color = chapter.color ?? "#f59e0b";
+
+            return (
+              <div
+                key={`track-chapter-${chapter.id}`}
+                title={chapter.label}
+                style={{
+                  position: "absolute",
+                  top: 1,
+                  bottom: 1,
+                  left: `${left}%`,
+                  width: 3,
+                  backgroundColor: color,
+                  borderRadius: 9999,
+                  boxShadow: `0 0 0 1px rgba(15, 23, 42, 0.9), 0 0 10px ${color}`,
+                  transform: "translateX(-1.5px)",
+                  zIndex: 10,
+                  pointerEvents: "none"
                 }}
                 aria-hidden
               />

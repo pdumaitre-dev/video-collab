@@ -117,6 +117,12 @@ surface-page (deepest)
 - Selected: `border-accent`, `bg-accent-muted`, `ring-1 ring-accent/30`.
 - Metadata (time range, created): `font-mono`, `text-fg-muted`, `text-[11px]`.
 
+## Chapters
+
+- Chapter creation uses a compact card below the time bar: label input, preset color select, and accent submit button.
+- Chapter markers on the time bar are narrow colored ticks. They layer above saved comment ranges and below the white seek cursor.
+- The sidebar stacks Chapters above Comments. Chapter cards use the same card, selected, delete, and timestamp patterns as comments.
+
 ## Depth and Feel (Without Images)
 
 - **Layered surfaces**: Use page → panel → card → elevated hierarchy.
@@ -131,7 +137,7 @@ surface-page (deepest)
 The following components and UI elements are **out of scope** for style changes:
 
 - **Video player** (`components/VideoPlayer.tsx`): Video surface, loading, error states.
-- **Time bar** (`components/TimeBar.tsx`): Seek bar, range selection, current time, duration. Drag start/end times use same format as current time (yellow `#fde68a`, monospace, 11px) and sit slightly above the ruler. Selected range is drawn as a yellow border only (`#fde68a`, transparent fill) on both ruler and pill track; it persists until comment is submitted. Saved comment ranges use the same pattern in green (`rgb(16, 185, 129)`). Green (z-index 5) sits below yellow (z-index 6–7) so yellow wins when overlapping.
+- **Time bar** (`components/TimeBar.tsx`): Seek bar, range selection, current time, duration. Drag start/end times use same format as current time (yellow `#fde68a`, monospace, 11px) and sit slightly above the ruler. Selected range is drawn as a yellow border only (`#fde68a`, transparent fill) on both ruler and pill track; it persists until comment is submitted. Saved comment ranges use the same pattern in green (`rgb(16, 185, 129)`). Chapter ticks use their chapter color and sit above green ranges. Green (z-index 5) sits below yellow (z-index 6–7) so yellow wins when overlapping.
 - **Play/pause button**: The control in `VideoPageShell` that toggles playback.
 
 These remain as-is to preserve playback behavior and accessibility.

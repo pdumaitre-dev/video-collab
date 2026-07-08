@@ -42,9 +42,13 @@ Cloud agents: see `AGENTS.md` → **Smoke test data** and **Cursor Cloud bootstr
 5. Wait for the player to load (expected within a few seconds).
 6. Confirm existing comments are visible.
 7. Confirm green ranges are visible on the timebar and align with comment time ranges.
-8. Validate timebar drag-selection behavior with all cases below:
-   - **Left-to-right drag:** selection turns blue while dragging.
-   - **Right-to-left drag:** selection turns blue while dragging.
+8. Add a named chapter at the current playhead time.
+9. Confirm the chapter appears in the Chapters list and as a colored tick on the timebar.
+10. Click the chapter in the list and confirm playback seeks to the chapter timestamp.
+11. Delete the test chapter and confirm it disappears from the list and timebar.
+12. Validate timebar drag-selection behavior with all cases below:
+   - **Left-to-right drag:** selection turns yellow while dragging.
+   - **Right-to-left drag:** selection turns yellow while dragging.
    - During drag, video frame preview/time updates continuously with cursor position.
    - On mouse release, playback position stays at the drag end time.
    - Drag with cursor moving outside timebar vertically, and release outside the timebar.
@@ -82,5 +86,5 @@ Use this one-line prefix in the report:
 - `Target:` `<url>`
 - `Result:` `PASS` or `FAIL`
 - `Video:` `<title tested>`
-- `Checked:` `videos list`, `player load`, `comments`, `green ranges`, `drag cases`
+- `Checked:` `videos list`, `player load`, `comments`, `green ranges`, `chapter add/jump/delete`, `drag cases`
 - `Notes:` key observations or alert payload

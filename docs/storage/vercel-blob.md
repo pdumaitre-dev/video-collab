@@ -46,6 +46,15 @@ Videos are stored in Vercel Blob under the `videos/` prefix. Neon PostgreSQL (vi
 - `DELETE /api/blob/comments?id=<commentId>`
 - Comments are stored in `Comment_blob`, keyed by Blob pathname.
 
+### Chapters
+
+- `GET /api/blob/chapters?pathname=...`
+- `POST /api/blob/chapters`
+- `PATCH /api/blob/chapters?id=<chapterId>`
+- `DELETE /api/blob/chapters?id=<chapterId>`
+- Chapters are stored in `Chapter_blob`, keyed by Blob pathname.
+- Chapter writes can include `durationSeconds`; the API validates `seconds` against it and updates `Video.durationSeconds` for that pathname.
+
 ## Private Playback Tradeoff
 
 The private stream route does not support Range requests. To preserve seeking, `components/VideoPlayer.tsx` downloads the whole file, creates a blob URL, and plays from that local URL.
@@ -62,4 +71,5 @@ Use `BLOB_ACCESS=public` if direct Blob URLs are acceptable.
 - `app/api/blob/upload/route.ts`
 - `app/api/blob/stream/route.ts`
 - `app/api/blob/comments/route.ts`
+- `app/api/blob/chapters/route.ts`
 - `components/VideoPlayer.tsx`

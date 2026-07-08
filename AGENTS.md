@@ -64,8 +64,9 @@ The core smoke skill (`.cursor/skills/core-e2e-smoke-test/SKILL.md`) expects the
 - Multiple videos under the Blob `videos/` prefix
 - Prefer the canonical fixture **`Nadia 12 mars`** (comments + green timebar ranges)
 - If that title is missing, use **any** listed video that shows existing comments and green ranges; record the substitute title in the report
+- Chapter smoke coverage creates and deletes a transient chapter during the browser test; no pre-seeded chapter fixture is required.
 
-`prisma/seed.ts` does not create Blob objects or `Comment_blob` rows — do not use seed to satisfy smoke preconditions.
+`prisma/seed.ts` does not create Blob objects, `Comment_blob` rows, or `Chapter_blob` rows — do not use seed to satisfy smoke preconditions.
 
 ## Local development
 
