@@ -94,13 +94,11 @@ export default function VideoPageShell({
       : null;
   }, [comments, selectedCommentId, selectedRange]);
 
-  const loopTargetKey = activeLoopRange
-    ? `${activeLoopRange.startSeconds}-${activeLoopRange.endSeconds}`
-    : null;
-
-  React.useEffect(() => {
-    setIsLoopEnabled(true);
-  }, [loopTargetKey]);
+  const loopTargetKey = selectedRange
+    ? `draft:${selectedRange.startSeconds}-${selectedRange.endSeconds}`
+    : selectedCommentId !== null
+      ? `comment:${selectedCommentId}`
+      : null;
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -134,6 +132,13 @@ export default function VideoPageShell({
       console.error("Failed to start playback", error);
     }
   }, []);
+
+  React.useEffect(() => {
+    setIsLoopEnabled(true);
+    if (loopTargetKey) {
+      void startPlayback();
+    }
+  }, [loopTargetKey, startPlayback]);
 
   const handleVideoTimeUpdate = React.useCallback(
     (time: number) => {
@@ -224,9 +229,6 @@ export default function VideoPageShell({
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
-      if (isLoopEnabled) {
-        void startPlayback();
-      }
     }
   };
 
@@ -299,9 +301,6 @@ export default function VideoPageShell({
                   endSeconds: rangeEndSeconds
                 });
                 handleSeek(dragEndSeconds);
-                if (isLoopEnabled) {
-                  void startPlayback();
-                }
               }}
             />
           </div>
