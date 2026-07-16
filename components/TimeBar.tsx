@@ -26,6 +26,7 @@ interface TimeBarProps {
     rangeEndSeconds: number,
     dragEndSeconds: number
   ) => void;
+  onRangeDragChange?: (isDragging: boolean) => void;
 }
 
 function formatTime(totalSeconds: number): string {
@@ -48,7 +49,8 @@ export default function TimeBar({
   comments = [],
   selectedRange = null,
   onSeek,
-  onRangeSelected
+  onRangeSelected,
+  onRangeDragChange
 }: TimeBarProps) {
   const timelineRef = React.useRef<HTMLDivElement | null>(null);
   const dragStartSecondsRef = React.useRef(0);
@@ -79,6 +81,7 @@ export default function TimeBar({
     const dragStartSeconds = toSeconds(e.clientX);
     dragStartSecondsRef.current = dragStartSeconds;
     setSelection({ dragStartSeconds, dragEndSeconds: dragStartSeconds });
+    onRangeDragChange?.(true);
 
     const onMove = (moveEvent: MouseEvent) => {
       const dragEndSeconds = toSeconds(moveEvent.clientX);
@@ -92,6 +95,7 @@ export default function TimeBar({
     const onUp = (upEvent: MouseEvent) => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      onRangeDragChange?.(false);
       const dragEndSeconds = toSeconds(upEvent.clientX);
       const rangeStartSeconds = Math.max(
         0,

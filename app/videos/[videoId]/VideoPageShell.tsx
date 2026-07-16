@@ -66,6 +66,7 @@ export default function VideoPageShell({
     number | null
   >(null);
   const [loopEnabled, setLoopEnabled] = React.useState(true);
+  const [isRangeDragging, setIsRangeDragging] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   const selectedComment = React.useMemo(
@@ -110,6 +111,7 @@ export default function VideoPageShell({
   const handleTimeUpdate = (time: number) => {
     if (
       loopEnabled &&
+      !isRangeDragging &&
       activeLoopRange &&
       time >= activeLoopRange.endSeconds
     ) {
@@ -243,6 +245,7 @@ export default function VideoPageShell({
               comments={comments}
               selectedRange={selectedRange}
               onSeek={handleSeek}
+              onRangeDragChange={setIsRangeDragging}
               onRangeSelected={(
                 rangeStartSeconds,
                 rangeEndSeconds,
