@@ -32,6 +32,7 @@ flowchart LR
 - `app/videos/[videoId]/VideoPageShell.tsx`: client shell for playback, range selection, and comments.
 - `components/VideoPlayer.tsx`: wraps `<video>` and handles the private-blob preload workaround.
 - `components/TimeBar.tsx`: combined timeline UI (ruler + time bar), seek cursor, and drag range selection.
+- `app/videos/[videoId]/VideoPageShell.tsx`: optional loop playback for a selected comment range (see `docs/video-player-page/loop-selected-range.md`).
 - `app/api/blob/upload/route.ts`: Blob upload plus `Video` record creation.
 - `app/api/blob/comments/route.ts`: pathname-keyed comment read/write/delete API.
 - `app/api/blob/stream/route.ts`: playback proxy for private Blob mode.
