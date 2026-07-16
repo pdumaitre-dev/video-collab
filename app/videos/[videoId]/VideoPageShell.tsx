@@ -195,6 +195,7 @@ export default function VideoPageShell({
 
   const handleSelectComment = (commentId: number) => {
     if (selectedCommentId === commentId) {
+      videoRef.current?.pause();
       setSelectedCommentId(null);
       return;
     }
