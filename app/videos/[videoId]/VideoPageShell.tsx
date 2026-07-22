@@ -268,6 +268,7 @@ export default function VideoPageShell({
               comments={comments}
               selectedRange={activeLoopRange}
               onSeek={handleSeek}
+              onRangeSelectionStart={stopLooping}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
                 setSelectedCommentId(null);
                 setSelectedRange({
