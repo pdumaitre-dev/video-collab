@@ -7,6 +7,7 @@ Playback on the video page is controlled by an external play/pause button in `ap
 - The button calls `video.play()` or `video.pause()` through `videoRef`.
 - UI state stays event-driven.
 - The video element is the source of truth.
+- The "Loop range" toggle applies to the currently selected comment. When enabled, `timeupdate` seeks back to the comment's `startSeconds` after playback reaches `endSeconds`.
 
 ## Event Contract
 
@@ -23,6 +24,7 @@ Playback on the video page is controlled by an external play/pause button in `ap
 - `video.play()` can reject.
 - Event-driven state avoids UI drift.
 - `onEnded` resets the button state without extra logic.
+- Looping stays client-only because comment ranges already contain `startSeconds` and `endSeconds`.
 
 ## State Mapping
 

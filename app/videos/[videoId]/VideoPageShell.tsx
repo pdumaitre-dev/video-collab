@@ -65,7 +65,12 @@ export default function VideoPageShell({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
+  const [isLoopRangeEnabled, setIsLoopRangeEnabled] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const selectedComment =
+    selectedCommentId === null
+      ? null
+      : comments.find((comment) => comment.id === selectedCommentId) ?? null;
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -87,6 +92,20 @@ export default function VideoPageShell({
     if (videoRef.current) {
       videoRef.current.currentTime = time;
     }
+    setCurrentTime(time);
+  };
+
+  const handleTimeUpdate = (time: number) => {
+    if (
+      isLoopRangeEnabled &&
+      selectedComment &&
+      selectedComment.endSeconds > selectedComment.startSeconds &&
+      time >= selectedComment.endSeconds
+    ) {
+      handleSeek(selectedComment.startSeconds);
+      return;
+    }
+
     setCurrentTime(time);
   };
 
@@ -158,7 +177,7 @@ export default function VideoPageShell({
           <VideoPlayer
             src={video.sourceUrl}
             videoRef={videoRef}
-            onTimeUpdate={setCurrentTime}
+            onTimeUpdate={handleTimeUpdate}
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
@@ -224,6 +243,23 @@ export default function VideoPageShell({
         <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
           Comments
         </h3>
+        <label className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-surface-card px-3 py-2 text-sm text-fg-secondary">
+          <span className="flex flex-col">
+            <span className="font-medium text-fg-primary">Loop range</span>
+            <span id="loop-range-help" className="text-xs text-fg-muted">
+              {selectedComment
+                ? "Replay the selected comment range."
+                : "Select a comment to loop its range."}
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={isLoopRangeEnabled}
+            onChange={(event) => setIsLoopRangeEnabled(event.target.checked)}
+            className="h-4 w-4 rounded border-white/[0.12] bg-surface-page accent-accent"
+            aria-describedby="loop-range-help"
+          />
+        </label>
         <CommentList
           comments={comments}
           selectedCommentId={selectedCommentId}
