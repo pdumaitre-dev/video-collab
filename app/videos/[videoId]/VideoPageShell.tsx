@@ -78,9 +78,12 @@ export default function VideoPageShell({
     number | null
   >(null);
   const [isLoopEnabled, setIsLoopEnabled] = React.useState(true);
+  const [dragPreviewRange, setDragPreviewRange] =
+    React.useState<TimeRange | null>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   const activeLoopRange = React.useMemo<TimeRange | null>(() => {
+    if (dragPreviewRange) return dragPreviewRange;
     if (selectedRange) return selectedRange;
     if (selectedCommentId === null) return null;
     const selectedComment = comments.find(
@@ -92,7 +95,7 @@ export default function VideoPageShell({
           endSeconds: selectedComment.endSeconds
         }
       : null;
-  }, [comments, selectedCommentId, selectedRange]);
+  }, [comments, dragPreviewRange, selectedCommentId, selectedRange]);
 
   const loopTargetKey = activeLoopRange
     ? `${activeLoopRange.startSeconds}-${activeLoopRange.endSeconds}`
@@ -224,9 +227,7 @@ export default function VideoPageShell({
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
-      if (isLoopEnabled) {
-        void startPlayback();
-      }
+      void startPlayback();
     }
   };
 
@@ -292,6 +293,7 @@ export default function VideoPageShell({
               comments={comments}
               selectedRange={selectedRange}
               onSeek={handleTimeBarSeek}
+              onRangePreview={setDragPreviewRange}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
                 setSelectedCommentId(null);
                 setSelectedRange({
@@ -299,9 +301,7 @@ export default function VideoPageShell({
                   endSeconds: rangeEndSeconds
                 });
                 handleSeek(dragEndSeconds);
-                if (isLoopEnabled) {
-                  void startPlayback();
-                }
+                void startPlayback();
               }}
             />
           </div>

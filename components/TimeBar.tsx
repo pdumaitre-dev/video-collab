@@ -20,6 +20,8 @@ interface TimeBarProps {
   /** Persisted selection from parent; shown until comment is submitted */
   selectedRange?: SelectedRange | null;
   onSeek: (timeSeconds: number, source?: "click" | "drag") => void;
+  /** Live drag bounds while the user is drawing a range (null when not dragging) */
+  onRangePreview?: (range: SelectedRange | null) => void;
   /** Called with normalized range (start <= end) and the position where the drag ended */
   onRangeSelected: (
     rangeStartSeconds: number,
@@ -48,6 +50,7 @@ export default function TimeBar({
   comments = [],
   selectedRange = null,
   onSeek,
+  onRangePreview,
   onRangeSelected
 }: TimeBarProps) {
   const timelineRef = React.useRef<HTMLDivElement | null>(null);
@@ -88,19 +91,34 @@ export default function TimeBar({
 
     const onMove = (moveEvent: MouseEvent) => {
       const dragEndSeconds = toSeconds(moveEvent.clientX);
-      if (Math.abs(dragEndSeconds - dragStartSecondsRef.current) >= 0.1) {
+      const crossedDragThreshold =
+        Math.abs(dragEndSeconds - dragStartSecondsRef.current) >= 0.1;
+      if (crossedDragThreshold) {
         suppressNextClickRef.current = true;
       }
       setSelection({
         dragStartSeconds: dragStartSecondsRef.current,
         dragEndSeconds
       });
+      if (crossedDragThreshold) {
+        onRangePreview?.({
+          startSeconds: Math.max(
+            0,
+            Math.min(dragStartSecondsRef.current, dragEndSeconds)
+          ),
+          endSeconds: Math.min(
+            durationSeconds,
+            Math.max(dragStartSecondsRef.current, dragEndSeconds)
+          )
+        });
+      }
       onSeek(dragEndSeconds, "drag");
     };
 
     const onUp = (upEvent: MouseEvent) => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      onRangePreview?.(null);
       const dragEndSeconds = toSeconds(upEvent.clientX);
       const rangeStartSeconds = Math.max(
         0,
@@ -115,6 +133,7 @@ export default function TimeBar({
         onRangeSelected(rangeStartSeconds, rangeEndSeconds, dragEndSeconds);
         setSelection({ dragStartSeconds: rangeStartSeconds, dragEndSeconds: rangeEndSeconds });
       } else {
+        suppressNextClickRef.current = false;
         setSelection(null);
       }
     };
