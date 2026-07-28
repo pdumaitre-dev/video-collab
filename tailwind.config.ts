@@ -14,21 +14,26 @@ const config: Config = {
       },
       colors: {
         surface: {
-          page: "#0a0a0c",
-          panel: "#121216",
-          card: "#1a1a1f",
-          elevated: "#222228"
+          page: "rgb(var(--color-surface-page) / <alpha-value>)",
+          panel: "rgb(var(--color-surface-panel) / <alpha-value>)",
+          card: "rgb(var(--color-surface-card) / <alpha-value>)",
+          elevated: "rgb(var(--color-surface-elevated) / <alpha-value>)"
         },
         fg: {
-          primary: "#f4f4f5",
-          secondary: "#a1a1aa",
-          muted: "#71717a",
-          disabled: "#52525b"
+          primary: "rgb(var(--color-fg-primary) / <alpha-value>)",
+          secondary: "rgb(var(--color-fg-secondary) / <alpha-value>)",
+          muted: "rgb(var(--color-fg-muted) / <alpha-value>)",
+          disabled: "rgb(var(--color-fg-disabled) / <alpha-value>)"
         },
         accent: {
-          DEFAULT: "#3b82f6",
-          hover: "#60a5fa",
-          muted: "rgba(59, 130, 246, 0.15)"
+          DEFAULT: "rgb(var(--color-accent) / <alpha-value>)",
+          hover: "rgb(var(--color-accent-hover) / <alpha-value>)",
+          muted: "rgb(var(--color-accent) / 0.15)",
+          contrast: "rgb(var(--color-accent-contrast) / <alpha-value>)"
+        },
+        border: {
+          DEFAULT: "rgb(var(--color-border) / <alpha-value>)",
+          emphasis: "rgb(var(--color-border-emphasis) / <alpha-value>)"
         }
       }
     }

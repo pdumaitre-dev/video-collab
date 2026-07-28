@@ -35,7 +35,7 @@ export default function CommentForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-3 rounded-lg border border-white/[0.08] bg-surface-card p-4"
+      className="space-y-3 rounded-lg border border-border bg-surface-card p-4"
     >
       {selectedRange && (
         <div className="text-xs">
@@ -48,7 +48,7 @@ export default function CommentForm({
         </div>
       )}
       <textarea
-        className="min-h-[80px] w-full rounded-md border border-white/[0.08] bg-surface-page px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-60"
+        className="min-h-[80px] w-full rounded-md border border-border bg-surface-page px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-60"
         placeholder={selectedRange ? "Add your comment..." : "Select a time range on the timeline to add a comment."}
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -58,7 +58,7 @@ export default function CommentForm({
         <button
           type="submit"
           disabled={!selectedRange || !text.trim() || submitting}
-          className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-contrast transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Saving..." : "Save comment"}
         </button>

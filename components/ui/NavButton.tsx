@@ -16,7 +16,7 @@ export default function NavButton({
 
   const variants = {
     primary:
-      "bg-accent text-white hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-page",
+      "bg-accent text-accent-contrast hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-page",
     secondary:
       "text-fg-secondary hover:bg-surface-card hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-muted focus-visible:ring-offset-2 focus-visible:ring-offset-surface-page"
   };
