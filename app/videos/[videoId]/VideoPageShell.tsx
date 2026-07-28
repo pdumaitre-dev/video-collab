@@ -69,6 +69,7 @@ export default function VideoPageShell({
   >(null);
   const [isLoopRangeEnabled, setIsLoopRangeEnabled] = React.useState(true);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const isTimelineDraggingRef = React.useRef(false);
 
   const selectedComment = React.useMemo(
     () => comments.find((comment) => comment.id === selectedCommentId) ?? null,
@@ -124,6 +125,7 @@ export default function VideoPageShell({
         isLoopRangeEnabled &&
         activeLoopRange &&
         videoElement &&
+        !isTimelineDraggingRef.current &&
         !videoElement.paused &&
         time >= activeLoopRange.endSeconds - 0.05
       ) {
@@ -140,6 +142,24 @@ export default function VideoPageShell({
   const handleLoopToggle = (enabled: boolean) => {
     setIsLoopRangeEnabled(enabled);
   };
+
+  const handleEnded = React.useCallback(() => {
+    const videoElement = videoRef.current;
+    const mediaDuration = videoElement?.duration ?? duration;
+    if (
+      isLoopRangeEnabled &&
+      activeLoopRange &&
+      videoElement &&
+      mediaDuration > 0 &&
+      activeLoopRange.endSeconds >= mediaDuration - 0.05
+    ) {
+      videoElement.currentTime = activeLoopRange.startSeconds;
+      setCurrentTime(activeLoopRange.startSeconds);
+      void startPlayback();
+      return;
+    }
+    setIsPlaying(false);
+  }, [activeLoopRange, duration, isLoopRangeEnabled, startPlayback]);
 
   const handleTogglePlayback = async () => {
     const videoElement = videoRef.current;
@@ -218,7 +238,7 @@ export default function VideoPageShell({
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={handleEnded}
           />
           <div className="flex items-center">
             <button
@@ -261,6 +281,9 @@ export default function VideoPageShell({
               comments={comments}
               selectedRange={selectedRange}
               onSeek={handleSeek}
+              onDragStateChange={(isDragging) => {
+                isTimelineDraggingRef.current = isDragging;
+              }}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
                 setSelectedCommentId(null);
                 setSelectedRange({
