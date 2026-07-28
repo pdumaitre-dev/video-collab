@@ -35,8 +35,8 @@ alwaysApply: false
 - Use `font-heading` for headings, brand text, and nav labels; use the default body font / `font-body` for body copy and controls.
 - Follow the existing dark surface hierarchy from `docs/style-reference.md`: page -> panel -> card -> elevated.
 - Use `rounded-lg` for panels/cards and `rounded-md` for controls by default.
-- Use `border-white/[0.08]` for standard borders and `border-white/[0.12]` for emphasis and hover states.
-- Keep shadows restrained and consistent with the existing panel style, e.g. `shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]`.
+- Use `border-divider` for standard borders and `border-divider-emphasis` for emphasis and hover states.
+- Keep shadows restrained: `shadow-panel` on panels.
 - Prefer `gap-*` and `space-y-*` for spacing rhythm; avoid arbitrary pixel values unless they are required for a precise interaction element.
 
 ## Figma MCP Integration Rules

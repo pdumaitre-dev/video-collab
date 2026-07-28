@@ -85,7 +85,7 @@ export default async function VideosPickerPage() {
             return (
               <li
                 key={video.pathname}
-                className="rounded-lg border border-white/[0.08] bg-surface-card p-4 transition-colors hover:border-white/[0.12] hover:bg-surface-elevated"
+                className="rounded-lg border border-divider bg-surface-card p-4 transition-colors hover:border-divider-emphasis hover:bg-surface-elevated"
               >
                 <Link
                   href={`/videos/${videoId}`}

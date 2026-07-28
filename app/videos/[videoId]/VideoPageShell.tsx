@@ -220,7 +220,7 @@ export default function VideoPageShell({
           />
         </div>
       </div>
-      <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
+      <div className="flex h-full flex-col rounded-lg border border-divider bg-surface-panel p-4 shadow-panel">
         <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
           Comments
         </h3>

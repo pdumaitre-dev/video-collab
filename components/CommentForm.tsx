@@ -35,7 +35,7 @@ export default function CommentForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-3 rounded-lg border border-white/[0.08] bg-surface-card p-4"
+      className="space-y-3 rounded-lg border border-divider bg-surface-card p-4"
     >
       {selectedRange && (
         <div className="text-xs">
@@ -48,7 +48,7 @@ export default function CommentForm({
         </div>
       )}
       <textarea
-        className="min-h-[80px] w-full rounded-md border border-white/[0.08] bg-surface-page px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-60"
+        className="min-h-[80px] w-full rounded-md border border-divider bg-surface-page px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-60"
         placeholder={selectedRange ? "Add your comment..." : "Select a time range on the timeline to add a comment."}
         value={text}
         onChange={(e) => setText(e.target.value)}

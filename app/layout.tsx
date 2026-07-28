@@ -3,6 +3,8 @@ import { Space_Grotesk, Manrope } from "next/font/google";
 import Link from "next/link";
 import Script from "next/script";
 import type { ReactNode } from "react";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import { ThemeInitScript } from "./theme-init";
 
 const fontHeading = Space_Grotesk({
   subsets: ["latin"],
@@ -23,8 +25,13 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fontHeading.variable} ${fontBody.variable}`}>
+    <html
+      lang="en"
+      className={`${fontHeading.variable} ${fontBody.variable}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-screen">
+        <ThemeInitScript />
         {process.env.NODE_ENV === "development" && (
           <Script
             src="https://mcp.figma.com/mcp/html-to-design/capture.js"
@@ -32,7 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           />
         )}
         <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-6">
-          <header className="mb-6 border-b border-white/[0.08] pb-4">
+          <header className="mb-6 border-b border-divider pb-4">
             <div className="flex items-center justify-between">
               <Link
                 href="/"
@@ -40,7 +47,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               >
                 Ballet Booster
               </Link>
-              <nav className="flex items-center gap-2">
+              <nav className="flex items-center gap-1 sm:gap-2">
+                <ThemeToggle />
                 <Link
                   href="/videos"
                   className="rounded-md px-3 py-1.5 text-sm font-medium text-fg-secondary no-underline transition-colors hover:bg-surface-card hover:text-fg-primary"
