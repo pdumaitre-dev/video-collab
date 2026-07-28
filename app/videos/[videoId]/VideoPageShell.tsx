@@ -150,15 +150,13 @@ export default function VideoPageShell({
     }
     setCurrentTime(time);
 
-    if (source === "click") {
-      setSelectedCommentId(null);
-      if (
-        loopRange &&
-        (time < loopRange.startSeconds - LOOP_END_EPSILON ||
-          time > loopRange.endSeconds + LOOP_END_EPSILON)
-      ) {
-        setIsLoopEnabled(false);
-      }
+    if (
+      source === "click" &&
+      loopRange &&
+      (time < loopRange.startSeconds - LOOP_END_EPSILON ||
+        time > loopRange.endSeconds + LOOP_END_EPSILON)
+    ) {
+      setIsLoopEnabled(false);
     }
   };
 
@@ -297,6 +295,7 @@ export default function VideoPageShell({
               comments={comments}
               selectedRange={selectedRange}
               onSeek={handleSeek}
+              onRangeDragStart={() => setIsLoopEnabled(false)}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
                 setSelectedCommentId(null);
                 setSelectedRange({
