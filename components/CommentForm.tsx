@@ -41,7 +41,7 @@ export default function CommentForm({
         <div className="text-xs">
           <span className="font-medium text-fg-primary">
             Add comment on range
-            <span className="ml-2 font-mono text-[11px]" style={{ color: "#fde68a" }}>
+            <span className="ml-2 font-mono text-[11px] text-fg-muted">
               {formatTime(selectedRange.startSeconds)} – {formatTime(selectedRange.endSeconds)}
             </span>
           </span>

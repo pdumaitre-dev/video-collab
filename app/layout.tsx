@@ -44,7 +44,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   document.documentElement.dataset.theme = theme;
                   document.documentElement.style.colorScheme = theme;
                 } catch (_) {
-                  document.documentElement.dataset.theme = "light";
+                  var theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+                  document.documentElement.dataset.theme = theme;
+                  document.documentElement.style.colorScheme = theme;
                 }
               })();
             `
