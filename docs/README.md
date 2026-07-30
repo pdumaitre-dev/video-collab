@@ -11,7 +11,6 @@ Current docs:
 
 Files to review or remove:
 
-- `../lib/blob-storage.ts`: appears unused.
 - `../prisma/seed.ts`: legacy `Video` + `Comment` seed only (Neon adapter); does not seed Blob or smoke fixtures.
 - `../app/videos/watch/[filename]/page.tsx`: legacy static-file route, not part of the main UI flow.
 

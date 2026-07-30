@@ -57,7 +57,6 @@ Current UI behavior uses `Video` and `Comment_blob`. The older `Comment` model i
 
 ## Legacy Paths To Review
 
-- `lib/blob-storage.ts`: appears unused.
 - `prisma/seed.ts`: still targets the older static sample-video path.
 - `app/videos/watch/[filename]/page.tsx`: manual static-file route, not linked from the main UI.
 

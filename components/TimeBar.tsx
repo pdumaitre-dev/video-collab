@@ -57,6 +57,12 @@ export default function TimeBar({
     dragEndSeconds: number;
   } | null>(null);
 
+  React.useEffect(() => {
+    if (!selectedRange) {
+      setSelection(null);
+    }
+  }, [selectedRange]);
+
   const toSeconds = React.useCallback(
     (clientX: number): number => {
       const rect = timelineRef.current?.getBoundingClientRect();
@@ -103,10 +109,8 @@ export default function TimeBar({
       );
       if (rangeEndSeconds - rangeStartSeconds >= 0.1) {
         onRangeSelected(rangeStartSeconds, rangeEndSeconds, dragEndSeconds);
-        setSelection({ dragStartSeconds: rangeStartSeconds, dragEndSeconds: rangeEndSeconds });
-      } else {
-        setSelection(null);
       }
+      setSelection(null);
     };
 
     window.addEventListener("mousemove", onMove);
