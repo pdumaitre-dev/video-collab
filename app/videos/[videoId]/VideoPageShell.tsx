@@ -302,9 +302,6 @@ export default function VideoPageShell({
               onSeek={handleSeek}
               onDragStateChange={(isDragging) => {
                 isTimelineDraggingRef.current = isDragging;
-                if (isDragging) {
-                  setIsLoopEnabled(false);
-                }
               }}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
                 setSelectedCommentId(null);
