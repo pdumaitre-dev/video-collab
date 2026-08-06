@@ -2,9 +2,14 @@
 
 import * as React from "react";
 import VideoPlayer from "@/components/VideoPlayer";
-import TimeBar from "@/components/TimeBar";
+import TimeBar, { type TimeBarSeekSource } from "@/components/TimeBar";
 import CommentList from "@/components/CommentList";
 import CommentForm from "@/components/CommentForm";
+import {
+  isOutsidePlaybackRange,
+  rangeReachesMediaEnd,
+  shouldWrapPlayback
+} from "@/lib/range-loop";
 
 export type CommentData = {
   id: number;
@@ -65,7 +70,15 @@ export default function VideoPageShell({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
+  const [isLoopEnabled, setIsLoopEnabled] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const isTimelineDraggingRef = React.useRef(false);
+
+  const selectedComment = React.useMemo(
+    () => comments.find((comment) => comment.id === selectedCommentId) ?? null,
+    [comments, selectedCommentId]
+  );
+  const activeLoopRange = selectedRange ?? selectedComment;
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -83,11 +96,85 @@ export default function VideoPageShell({
     return () => clearInterval(id);
   }, [duration]);
 
-  const handleSeek = (time: number) => {
+  const handleSeek = (
+    time: number,
+    source: TimeBarSeekSource = "programmatic"
+  ) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
     }
     setCurrentTime(time);
+    if (
+      source === "timeline-click" &&
+      activeLoopRange &&
+      isOutsidePlaybackRange(time, activeLoopRange)
+    ) {
+      setIsLoopEnabled(false);
+    }
+  };
+
+  const startPlayback = React.useCallback(async () => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    try {
+      await videoElement.play();
+    } catch (error) {
+      console.error("Failed to start playback", error);
+    }
+  }, []);
+
+  const handleTimeUpdate = React.useCallback(
+    (time: number) => {
+      const videoElement = videoRef.current;
+      if (
+        shouldWrapPlayback({
+          currentTime: time,
+          range: activeLoopRange,
+          isLoopEnabled,
+          isPaused: videoElement?.paused ?? true,
+          isTimelineDragging: isTimelineDraggingRef.current
+        }) &&
+        videoElement &&
+        activeLoopRange
+      ) {
+        videoElement.currentTime = activeLoopRange.startSeconds;
+        setCurrentTime(activeLoopRange.startSeconds);
+        return;
+      }
+
+      setCurrentTime(time);
+    },
+    [activeLoopRange, isLoopEnabled]
+  );
+
+  const handleEnded = React.useCallback(() => {
+    const videoElement = videoRef.current;
+    const mediaDuration = videoElement?.duration ?? duration;
+    if (
+      videoElement &&
+      isLoopEnabled &&
+      !isTimelineDraggingRef.current &&
+      rangeReachesMediaEnd(activeLoopRange, mediaDuration) &&
+      activeLoopRange
+    ) {
+      videoElement.currentTime = activeLoopRange.startSeconds;
+      setCurrentTime(activeLoopRange.startSeconds);
+      void startPlayback();
+      return;
+    }
+
+    setIsPlaying(false);
+  }, [activeLoopRange, duration, isLoopEnabled, startPlayback]);
+
+  const handleLoopToggle = (enabled: boolean) => {
+    setIsLoopEnabled(enabled);
+    if (!enabled || !activeLoopRange) return;
+
+    if (isOutsidePlaybackRange(currentTime, activeLoopRange)) {
+      handleSeek(activeLoopRange.startSeconds);
+    }
+    void startPlayback();
   };
 
   const handleTogglePlayback = async () => {
@@ -95,15 +182,12 @@ export default function VideoPageShell({
     if (!videoElement) return;
 
     if (videoElement.paused) {
-      try {
-        await videoElement.play();
-      } catch (error) {
-        console.error("Failed to start playback", error);
-      }
+      await startPlayback();
       return;
     }
 
     videoElement.pause();
+    setIsLoopEnabled(false);
   };
 
   const handleNewComment = async (text: string) => {
@@ -125,6 +209,7 @@ export default function VideoPageShell({
       [...prev, created].sort((a, b) => a.startSeconds - b.startSeconds)
     );
     setSelectedRange(null);
+    setIsLoopEnabled(false);
   };
 
   const handleDeleteComment = async (commentId: number) => {
@@ -132,14 +217,24 @@ export default function VideoPageShell({
     setComments((prev) => prev.filter((c) => c.id !== commentId));
     if (selectedCommentId === commentId) {
       setSelectedCommentId(null);
+      setIsLoopEnabled(false);
     }
   };
 
   const handleSelectComment = (commentId: number) => {
-    setSelectedCommentId(commentId);
+    if (selectedCommentId === commentId) {
+      setSelectedCommentId(null);
+      setIsLoopEnabled(false);
+      return;
+    }
+
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
+      setSelectedRange(null);
+      setSelectedCommentId(commentId);
+      setIsLoopEnabled(true);
       handleSeek(comment.startSeconds);
+      void startPlayback();
     }
   };
 
@@ -158,11 +253,11 @@ export default function VideoPageShell({
           <VideoPlayer
             src={video.sourceUrl}
             videoRef={videoRef}
-            onTimeUpdate={setCurrentTime}
+            onTimeUpdate={handleTimeUpdate}
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={handleEnded}
           />
           <div className="flex items-center">
             <button
@@ -205,12 +300,21 @@ export default function VideoPageShell({
               comments={comments}
               selectedRange={selectedRange}
               onSeek={handleSeek}
+              onDragStateChange={(isDragging) => {
+                isTimelineDraggingRef.current = isDragging;
+                if (isDragging) {
+                  setIsLoopEnabled(false);
+                }
+              }}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
+                setSelectedCommentId(null);
                 setSelectedRange({
                   startSeconds: rangeStartSeconds,
                   endSeconds: rangeEndSeconds
                 });
+                setIsLoopEnabled(true);
                 handleSeek(dragEndSeconds);
+                void startPlayback();
               }}
             />
           </div>
@@ -221,9 +325,31 @@ export default function VideoPageShell({
         </div>
       </div>
       <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
-        <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
-          Comments
-        </h3>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-heading text-sm font-semibold tracking-tight text-fg-primary">
+            Comments
+          </h3>
+          {activeLoopRange && (
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-fg-secondary">
+                <input
+                  type="checkbox"
+                  checked={isLoopEnabled}
+                  onChange={(event) => handleLoopToggle(event.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-white/[0.12] bg-surface-card accent-accent"
+                  aria-label="Loop selected range"
+                />
+                Loop range
+              </label>
+              {isLoopEnabled && (
+                <span className="font-mono text-[11px] text-fg-muted">
+                  Repeating {formatTime(activeLoopRange.startSeconds)} –{" "}
+                  {formatTime(activeLoopRange.endSeconds)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
         <CommentList
           comments={comments}
           selectedCommentId={selectedCommentId}
@@ -233,4 +359,12 @@ export default function VideoPageShell({
       </div>
     </div>
   );
+}
+
+function formatTime(totalSeconds: number): string {
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return "0:00";
+  const seconds = Math.floor(totalSeconds);
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
+  return `${minutes}:${remaining.toString().padStart(2, "0")}`;
 }

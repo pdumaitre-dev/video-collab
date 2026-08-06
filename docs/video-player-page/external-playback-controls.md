@@ -18,6 +18,10 @@ Playback on the video page is controlled by an external play/pause button in `ap
 
 `VideoPageShell` maps them to `isPlaying`.
 
+## Range looping
+
+An active comment or draft timeline range can repeat between `startSeconds` and `endSeconds`. Pausing with the external control disables looping. See `loop-selected-range.md` for selection and timeline interaction rules.
+
 ## Why
 
 - `video.play()` can reject.

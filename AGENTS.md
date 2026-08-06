@@ -32,6 +32,7 @@ with open('.env','w') as f:
 ## Key commands
 
 - **Dev server:** `npm run dev` (port 3000)
+- **Unit tests:** `npm test`
 - **Lint:** `npm run lint`
 - **Build:** `npm run build`
 - **Prisma client:** `npm run prisma:generate` (also runs on `npm install` via `postinstall`)

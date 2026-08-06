@@ -13,13 +13,19 @@ interface SelectedRange {
   endSeconds: number;
 }
 
+export type TimeBarSeekSource =
+  | "programmatic"
+  | "timeline-click"
+  | "timeline-drag";
+
 interface TimeBarProps {
   durationSeconds: number;
   currentTime: number;
   comments?: CommentRange[];
   /** Persisted selection from parent; shown until comment is submitted */
   selectedRange?: SelectedRange | null;
-  onSeek: (timeSeconds: number) => void;
+  onSeek: (timeSeconds: number, source?: TimeBarSeekSource) => void;
+  onDragStateChange?: (isDragging: boolean) => void;
   /** Called with normalized range (start <= end) and the position where the drag ended */
   onRangeSelected: (
     rangeStartSeconds: number,
@@ -48,10 +54,12 @@ export default function TimeBar({
   comments = [],
   selectedRange = null,
   onSeek,
+  onDragStateChange,
   onRangeSelected
 }: TimeBarProps) {
   const timelineRef = React.useRef<HTMLDivElement | null>(null);
   const dragStartSecondsRef = React.useRef(0);
+  const suppressNextClickRef = React.useRef(false);
   const [selection, setSelection] = React.useState<{
     dragStartSeconds: number;
     dragEndSeconds: number;
@@ -69,8 +77,12 @@ export default function TimeBar({
 
   const handleClickSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (durationSeconds <= 0) return;
+    if (suppressNextClickRef.current) {
+      suppressNextClickRef.current = false;
+      return;
+    }
     const seconds = toSeconds(e.clientX);
-    onSeek(seconds);
+    onSeek(seconds, "timeline-click");
   };
 
   const handleMouseDownSelection = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -79,6 +91,7 @@ export default function TimeBar({
     const dragStartSeconds = toSeconds(e.clientX);
     dragStartSecondsRef.current = dragStartSeconds;
     setSelection({ dragStartSeconds, dragEndSeconds: dragStartSeconds });
+    onDragStateChange?.(true);
 
     const onMove = (moveEvent: MouseEvent) => {
       const dragEndSeconds = toSeconds(moveEvent.clientX);
@@ -86,12 +99,13 @@ export default function TimeBar({
         dragStartSeconds: dragStartSecondsRef.current,
         dragEndSeconds
       });
-      onSeek(dragEndSeconds);
+      onSeek(dragEndSeconds, "timeline-drag");
     };
 
     const onUp = (upEvent: MouseEvent) => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      onDragStateChange?.(false);
       const dragEndSeconds = toSeconds(upEvent.clientX);
       const rangeStartSeconds = Math.max(
         0,
@@ -102,8 +116,12 @@ export default function TimeBar({
         Math.max(dragStartSecondsRef.current, dragEndSeconds)
       );
       if (rangeEndSeconds - rangeStartSeconds >= 0.1) {
+        suppressNextClickRef.current = true;
         onRangeSelected(rangeStartSeconds, rangeEndSeconds, dragEndSeconds);
         setSelection({ dragStartSeconds: rangeStartSeconds, dragEndSeconds: rangeEndSeconds });
+        window.setTimeout(() => {
+          suppressNextClickRef.current = false;
+        }, 0);
       } else {
         setSelection(null);
       }
