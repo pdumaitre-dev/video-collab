@@ -27,6 +27,8 @@ interface TimeBarProps {
     rangeEndSeconds: number,
     dragEndSeconds: number
   ) => void;
+  /** True from mousedown through mouseup so the parent can suspend loop wrap mid-drag. */
+  onRangeDragChange?: (isDragging: boolean) => void;
 }
 
 function formatTime(totalSeconds: number): string {
@@ -49,7 +51,8 @@ export default function TimeBar({
   comments = [],
   selectedRange = null,
   onSeek,
-  onRangeSelected
+  onRangeSelected,
+  onRangeDragChange
 }: TimeBarProps) {
   const timelineRef = React.useRef<HTMLDivElement | null>(null);
   const dragStartSecondsRef = React.useRef(0);
@@ -85,6 +88,7 @@ export default function TimeBar({
     const dragStartSeconds = toSeconds(e.clientX);
     dragStartSecondsRef.current = dragStartSeconds;
     setSelection({ dragStartSeconds, dragEndSeconds: dragStartSeconds });
+    onRangeDragChange?.(true);
 
     const onMove = (moveEvent: MouseEvent) => {
       const dragEndSeconds = toSeconds(moveEvent.clientX);
@@ -111,9 +115,14 @@ export default function TimeBar({
         suppressClickAfterDragRef.current = true;
         onRangeSelected(rangeStartSeconds, rangeEndSeconds, dragEndSeconds);
         setSelection({ dragStartSeconds: rangeStartSeconds, dragEndSeconds: rangeEndSeconds });
+        // Clear even if mouseup was outside the bar and no follow-up click arrives.
+        window.setTimeout(() => {
+          suppressClickAfterDragRef.current = false;
+        }, 0);
       } else {
         setSelection(null);
       }
+      onRangeDragChange?.(false);
     };
 
     window.addEventListener("mousemove", onMove);

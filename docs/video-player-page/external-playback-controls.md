@@ -36,6 +36,6 @@ When **Loop range** is on and a comment or draft range is selected, `VideoPageSh
 
 - Pause still comes from the video `pause` event; looping does not advance while paused.
 - Intra-range wraps must not fire `onEnded`. If the native `ended` event fires because the range includes the file end, the shell seeks to `startSeconds` and calls `play()` instead of clearing `isPlaying`.
-- Timeline click-seeks clear the loop target. Drag-seeks during range selection do not.
+- Timeline click-seeks clear the loop target. Drag-seeks during range selection do not, and loop wrap is suspended while a range drag is in progress.
 
 See `loop-selected-range.md`.

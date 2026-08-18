@@ -73,6 +73,7 @@ export default function VideoPageShell({
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const wrappingRef = React.useRef(false);
   const previousLoopTargetKeyRef = React.useRef<string | null>(null);
+  const isRangeDraggingRef = React.useRef(false);
 
   const selectedLoopTarget = React.useMemo(() => {
     if (selectedRange) {
@@ -146,6 +147,7 @@ export default function VideoPageShell({
     if (
       activeLoopRange &&
       isPlaying &&
+      !isRangeDraggingRef.current &&
       time >= activeLoopRange.endSeconds - LOOP_END_EPSILON_SECONDS
     ) {
       if (wrappingRef.current) return;
@@ -234,9 +236,8 @@ export default function VideoPageShell({
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
-      if (loopRangeEnabled) {
-        void startPlayback();
-      }
+      // New target re-enables the toggle after render; do not gate on the stale value.
+      void startPlayback();
     }
   };
 
@@ -302,6 +303,9 @@ export default function VideoPageShell({
               comments={comments}
               selectedRange={selectedRange}
               onSeek={handleSeek}
+              onRangeDragChange={(isDragging) => {
+                isRangeDraggingRef.current = isDragging;
+              }}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
                 setSelectedCommentId(null);
                 setSelectedRange({

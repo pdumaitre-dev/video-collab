@@ -13,7 +13,7 @@ Clicking the same comment again deselects it and stops looping. A timeline **cli
 
 ## Loop logic
 
-`VideoPageShell` handles `timeupdate` from `VideoPlayer`. While playing, when `currentTime >= endSeconds - 0.05s`, `currentTime` snaps back to `startSeconds`. Native `ended` also wraps when the active range includes the video end.
+`VideoPageShell` handles `timeupdate` from `VideoPlayer`. While playing, when `currentTime >= endSeconds - 0.05s`, `currentTime` snaps back to `startSeconds`. Native `ended` also wraps when the active range includes the video end. Wrap is suspended while a TimeBar range drag is in progress so the playhead can follow the cursor.
 
 Pause (`video.pause()` via the play/pause button) stops advancement. The toggle stays armed so resume continues looping.
 
