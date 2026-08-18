@@ -54,6 +54,7 @@ Current UI behavior uses `Video` and `Comment_blob`. The older `Comment` model i
 - `BLOB_ACCESS=private`: use `/api/blob/stream`.
 - For private playback, `components/VideoPlayer.tsx` fetches the full file and swaps to a blob URL so browser seeking still works.
 - `components/TimeBar.tsx` exposes one shared horizontal scale for ruler ticks and the seek bar so drag-to-select can begin on either surface and end anywhere on the page.
+- Selected comment or draft ranges can loop in `VideoPageShell` via `timeupdate` wrap. See `docs/video-player-page/loop-selected-range.md`.
 
 ## Legacy Paths To Review
 

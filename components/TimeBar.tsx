@@ -19,7 +19,8 @@ interface TimeBarProps {
   comments?: CommentRange[];
   /** Persisted selection from parent; shown until comment is submitted */
   selectedRange?: SelectedRange | null;
-  onSeek: (timeSeconds: number) => void;
+  /** Click seeks clear the parent selection; drag seeks only preview the playhead. */
+  onSeek: (timeSeconds: number, source: "click" | "drag") => void;
   /** Called with normalized range (start <= end) and the position where the drag ended */
   onRangeSelected: (
     rangeStartSeconds: number,
@@ -52,6 +53,7 @@ export default function TimeBar({
 }: TimeBarProps) {
   const timelineRef = React.useRef<HTMLDivElement | null>(null);
   const dragStartSecondsRef = React.useRef(0);
+  const suppressClickAfterDragRef = React.useRef(false);
   const [selection, setSelection] = React.useState<{
     dragStartSeconds: number;
     dragEndSeconds: number;
@@ -68,9 +70,13 @@ export default function TimeBar({
   );
 
   const handleClickSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (suppressClickAfterDragRef.current) {
+      suppressClickAfterDragRef.current = false;
+      return;
+    }
     if (durationSeconds <= 0) return;
     const seconds = toSeconds(e.clientX);
-    onSeek(seconds);
+    onSeek(seconds, "click");
   };
 
   const handleMouseDownSelection = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -86,7 +92,7 @@ export default function TimeBar({
         dragStartSeconds: dragStartSecondsRef.current,
         dragEndSeconds
       });
-      onSeek(dragEndSeconds);
+      onSeek(dragEndSeconds, "drag");
     };
 
     const onUp = (upEvent: MouseEvent) => {
@@ -102,6 +108,7 @@ export default function TimeBar({
         Math.max(dragStartSecondsRef.current, dragEndSeconds)
       );
       if (rangeEndSeconds - rangeStartSeconds >= 0.1) {
+        suppressClickAfterDragRef.current = true;
         onRangeSelected(rangeStartSeconds, rangeEndSeconds, dragEndSeconds);
         setSelection({ dragStartSeconds: rangeStartSeconds, dragEndSeconds: rangeEndSeconds });
       } else {
