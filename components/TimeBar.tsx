@@ -19,13 +19,16 @@ interface TimeBarProps {
   comments?: CommentRange[];
   /** Persisted selection from parent; shown until comment is submitted */
   selectedRange?: SelectedRange | null;
-  onSeek: (timeSeconds: number) => void;
+  /** Click seeks clear the parent selection; drag seeks only preview the playhead. */
+  onSeek: (timeSeconds: number, source: "click" | "drag") => void;
   /** Called with normalized range (start <= end) and the position where the drag ended */
   onRangeSelected: (
     rangeStartSeconds: number,
     rangeEndSeconds: number,
     dragEndSeconds: number
   ) => void;
+  /** True from mousedown through mouseup so the parent can suspend loop wrap mid-drag. */
+  onRangeDragChange?: (isDragging: boolean) => void;
 }
 
 function formatTime(totalSeconds: number): string {
@@ -48,10 +51,12 @@ export default function TimeBar({
   comments = [],
   selectedRange = null,
   onSeek,
-  onRangeSelected
+  onRangeSelected,
+  onRangeDragChange
 }: TimeBarProps) {
   const timelineRef = React.useRef<HTMLDivElement | null>(null);
   const dragStartSecondsRef = React.useRef(0);
+  const suppressClickAfterDragRef = React.useRef(false);
   const [selection, setSelection] = React.useState<{
     dragStartSeconds: number;
     dragEndSeconds: number;
@@ -68,9 +73,13 @@ export default function TimeBar({
   );
 
   const handleClickSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (suppressClickAfterDragRef.current) {
+      suppressClickAfterDragRef.current = false;
+      return;
+    }
     if (durationSeconds <= 0) return;
     const seconds = toSeconds(e.clientX);
-    onSeek(seconds);
+    onSeek(seconds, "click");
   };
 
   const handleMouseDownSelection = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -79,6 +88,7 @@ export default function TimeBar({
     const dragStartSeconds = toSeconds(e.clientX);
     dragStartSecondsRef.current = dragStartSeconds;
     setSelection({ dragStartSeconds, dragEndSeconds: dragStartSeconds });
+    onRangeDragChange?.(true);
 
     const onMove = (moveEvent: MouseEvent) => {
       const dragEndSeconds = toSeconds(moveEvent.clientX);
@@ -86,7 +96,7 @@ export default function TimeBar({
         dragStartSeconds: dragStartSecondsRef.current,
         dragEndSeconds
       });
-      onSeek(dragEndSeconds);
+      onSeek(dragEndSeconds, "drag");
     };
 
     const onUp = (upEvent: MouseEvent) => {
@@ -102,11 +112,17 @@ export default function TimeBar({
         Math.max(dragStartSecondsRef.current, dragEndSeconds)
       );
       if (rangeEndSeconds - rangeStartSeconds >= 0.1) {
+        suppressClickAfterDragRef.current = true;
         onRangeSelected(rangeStartSeconds, rangeEndSeconds, dragEndSeconds);
         setSelection({ dragStartSeconds: rangeStartSeconds, dragEndSeconds: rangeEndSeconds });
+        // Clear even if mouseup was outside the bar and no follow-up click arrives.
+        window.setTimeout(() => {
+          suppressClickAfterDragRef.current = false;
+        }, 0);
       } else {
         setSelection(null);
       }
+      onRangeDragChange?.(false);
     };
 
     window.addEventListener("mousemove", onMove);
