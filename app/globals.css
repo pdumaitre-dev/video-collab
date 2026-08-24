@@ -3,6 +3,40 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: light;
+    --color-surface-page: 247 247 244;
+    --color-surface-panel: 242 241 237;
+    --color-surface-card: 240 239 235;
+    --color-surface-elevated: 235 234 229;
+    --color-fg-primary: 38 37 30;
+    --color-fg-secondary: 90 88 80;
+    --color-fg-muted: 121 118 107;
+    --color-fg-disabled: 154 150 138;
+    --color-accent: 245 78 0;
+    --color-accent-hover: 199 62 0;
+    --color-accent-contrast: 255 255 255;
+    --color-border: 215 213 204;
+    --color-border-emphasis: 193 190 180;
+  }
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --color-surface-page: 10 10 12;
+    --color-surface-panel: 18 18 22;
+    --color-surface-card: 26 26 31;
+    --color-surface-elevated: 34 34 40;
+    --color-fg-primary: 244 244 245;
+    --color-fg-secondary: 161 161 170;
+    --color-fg-muted: 113 113 122;
+    --color-fg-disabled: 82 82 91;
+    --color-accent: 59 130 246;
+    --color-accent-hover: 96 165 250;
+    --color-accent-contrast: 255 255 255;
+    --color-border: 45 45 52;
+    --color-border-emphasis: 61 61 69;
+  }
+
   body {
     @apply antialiased bg-surface-page text-fg-primary;
     font-family: var(--font-body), system-ui, sans-serif;

@@ -10,27 +10,27 @@ const colorTokens = [
   {
     group: "Surfaces",
     tokens: [
-      { name: "surface-page", hex: "#0a0a0c", usage: "Page background" },
-      { name: "surface-panel", hex: "#121216", usage: "Side panels" },
-      { name: "surface-card", hex: "#1a1a1f", usage: "Cards, list items" },
-      { name: "surface-elevated", hex: "#222228", usage: "Hover states" }
+      { name: "surface-page", cssVar: "--color-surface-page", light: "#f7f7f4", dark: "#0a0a0c", usage: "Page background" },
+      { name: "surface-panel", cssVar: "--color-surface-panel", light: "#f2f1ed", dark: "#121216", usage: "Side panels" },
+      { name: "surface-card", cssVar: "--color-surface-card", light: "#f0efeb", dark: "#1a1a1f", usage: "Cards, list items" },
+      { name: "surface-elevated", cssVar: "--color-surface-elevated", light: "#ebeae5", dark: "#222228", usage: "Hover states" }
     ]
   },
   {
     group: "Foreground",
     tokens: [
-      { name: "fg-primary", hex: "#f4f4f5", usage: "Primary text" },
-      { name: "fg-secondary", hex: "#a1a1aa", usage: "Secondary text" },
-      { name: "fg-muted", hex: "#71717a", usage: "Metadata, hints" },
-      { name: "fg-disabled", hex: "#52525b", usage: "Disabled" }
+      { name: "fg-primary", cssVar: "--color-fg-primary", light: "#26251e", dark: "#f4f4f5", usage: "Primary text" },
+      { name: "fg-secondary", cssVar: "--color-fg-secondary", light: "#5a5850", dark: "#a1a1aa", usage: "Secondary text" },
+      { name: "fg-muted", cssVar: "--color-fg-muted", light: "#79766b", dark: "#71717a", usage: "Metadata, hints" },
+      { name: "fg-disabled", cssVar: "--color-fg-disabled", light: "#9a968a", dark: "#52525b", usage: "Disabled" }
     ]
   },
   {
     group: "Accent",
     tokens: [
-      { name: "accent", hex: "#3b82f6", usage: "Primary actions" },
-      { name: "accent-hover", hex: "#60a5fa", usage: "Hover state" },
-      { name: "accent-muted", hex: "rgba(59,130,246,0.15)", usage: "Selected" }
+      { name: "accent", cssVar: "--color-accent", light: "#f54e00", dark: "#3b82f6", usage: "Primary actions" },
+      { name: "accent-hover", cssVar: "--color-accent-hover", light: "#c73e00", dark: "#60a5fa", usage: "Hover state" },
+      { name: "border", cssVar: "--color-border", light: "#d7d5cc", dark: "#2d2d34", usage: "Default border" }
     ]
   }
 ];
@@ -61,6 +61,8 @@ export default function DesignSystemPage() {
         </h2>
         <p className="text-sm text-fg-secondary">
           Modern, sport-oriented, studio-athletic. Clean, controlled, premium.
+          The theme follows the system preference until a user chooses Light or
+          Dark in the header.
         </p>
       </section>
 
@@ -79,16 +81,19 @@ export default function DesignSystemPage() {
                 {group.tokens.map((token) => (
                   <div
                     key={token.name}
-                    className="flex flex-col gap-2 rounded-lg border border-white/[0.08] bg-surface-card p-4"
+                    className="flex flex-col gap-2 rounded-lg border border-border bg-surface-card p-4"
                   >
                     <div
-                      className="h-12 w-24 rounded-md border border-white/[0.08]"
-                      style={{ backgroundColor: token.hex }}
+                      className="h-12 w-24 rounded-md border border-border"
+                      style={{ backgroundColor: `rgb(var(${token.cssVar}))` }}
                     />
                     <div>
                       <span className="font-mono text-xs text-fg-muted">
                         {token.name}
                       </span>
+                      <p className="font-mono text-[11px] text-fg-muted">
+                        L {token.light} / D {token.dark}
+                      </p>
                       <p className="text-xs text-fg-secondary">{token.usage}</p>
                     </div>
                   </div>
@@ -104,9 +109,9 @@ export default function DesignSystemPage() {
         <h2 className="font-heading text-lg font-semibold text-fg-primary">
           Surface Hierarchy
         </h2>
-        <div className="flex flex-col gap-2 rounded-lg border border-white/[0.08] bg-surface-panel p-6 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
-          <div className="rounded-lg border border-white/[0.08] bg-surface-card p-4">
-            <div className="rounded-lg border border-white/[0.08] bg-surface-elevated p-3">
+        <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface-panel p-6 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
+          <div className="rounded-lg border border-border bg-surface-card p-4">
+            <div className="rounded-lg border border-border bg-surface-elevated p-3">
               <span className="text-sm text-fg-primary">
                 page → panel → card → elevated
               </span>
@@ -124,7 +129,7 @@ export default function DesignSystemPage() {
           <p className="text-sm text-fg-secondary">
             Heading: Space Grotesk · Body: Manrope
           </p>
-          <div className="flex flex-col gap-3 rounded-lg border border-white/[0.08] bg-surface-card p-4">
+          <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface-card p-4">
             {typographySamples.map((sample) => (
               <div key={sample.label} className="flex flex-col gap-1">
                 <span className="text-xs text-fg-muted">{sample.label}</span>
@@ -140,10 +145,10 @@ export default function DesignSystemPage() {
         <h2 className="font-heading text-lg font-semibold text-fg-primary">
           Buttons
         </h2>
-        <div className="flex flex-wrap gap-4 rounded-lg border border-white/[0.08] bg-surface-card p-4">
+        <div className="flex flex-wrap gap-4 rounded-lg border border-border bg-surface-card p-4">
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white no-underline transition-colors hover:bg-accent-hover"
+            className="inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast no-underline transition-colors hover:bg-accent-hover"
           >
             Primary
           </Link>
@@ -163,17 +168,17 @@ export default function DesignSystemPage() {
           Borders & Radius
         </h2>
         <div className="flex flex-wrap gap-4">
-          <div className="rounded-lg border border-white/[0.08] bg-surface-card p-4">
+          <div className="rounded-lg border border-border bg-surface-card p-4">
             <span className="text-sm text-fg-secondary">
               Default border · rounded-lg
             </span>
           </div>
-          <div className="rounded-lg border border-white/[0.12] bg-surface-card p-4">
+          <div className="rounded-lg border border-border-emphasis bg-surface-card p-4">
             <span className="text-sm text-fg-secondary">
               Emphasis border · rounded-lg
             </span>
           </div>
-          <div className="rounded-md border border-white/[0.08] bg-surface-card px-3 py-2">
+          <div className="rounded-md border border-border bg-surface-card px-3 py-2">
             <span className="text-sm text-fg-secondary">
               Control · rounded-md
             </span>
@@ -186,7 +191,7 @@ export default function DesignSystemPage() {
         <h2 className="font-heading text-lg font-semibold text-fg-primary">
           Spacing
         </h2>
-        <div className="flex flex-wrap items-end gap-4 rounded-lg border border-white/[0.08] bg-surface-card p-4">
+        <div className="flex flex-wrap items-end gap-4 rounded-lg border border-border bg-surface-card p-4">
           <div className="flex flex-col items-center gap-1">
             <div className="h-4 w-4 rounded bg-accent/30" />
             <span className="text-xs text-fg-muted">4 (1rem)</span>

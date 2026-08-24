@@ -39,7 +39,7 @@ export default function CommentList({
 
   if (comments.length === 0) {
     return (
-      <div className="mt-4 rounded-lg border border-dashed border-white/[0.12] bg-surface-card/50 py-8 text-center">
+      <div className="mt-4 rounded-lg border border-dashed border-border-emphasis bg-surface-card/50 py-8 text-center">
         <p className="text-sm text-fg-secondary">
           No comments yet.
         </p>
@@ -61,7 +61,7 @@ export default function CommentList({
             className={`group cursor-pointer rounded-lg border px-3 py-3 text-sm transition-all ${
               isSelected
                 ? "border-accent bg-accent-muted ring-1 ring-accent/30"
-                : "border-white/[0.08] bg-surface-card hover:border-white/[0.12] hover:bg-surface-elevated"
+                : "border-border bg-surface-card hover:border-border-emphasis hover:bg-surface-elevated"
             }`}
             onClick={() => onSelect(c.id)}
           >

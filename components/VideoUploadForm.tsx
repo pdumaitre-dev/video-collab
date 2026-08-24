@@ -99,7 +99,7 @@ export default function VideoUploadForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-lg border border-white/[0.08] bg-surface-card p-4"
+      className="space-y-4 rounded-lg border border-border bg-surface-card p-4"
     >
       <div className="space-y-1">
         <label htmlFor="video-file" className="text-sm font-medium text-fg-primary">
@@ -112,7 +112,7 @@ export default function VideoUploadForm() {
           accept={ALLOWED_EXTENSIONS.join(",")}
           onChange={handleFileChange}
           disabled={submitting}
-          className="block w-full rounded-md border border-white/[0.08] bg-surface-page px-3 py-2 text-sm text-fg-primary file:mr-3 file:rounded-md file:border-0 file:bg-accent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-accent-hover"
+          className="block w-full rounded-md border border-border bg-surface-page px-3 py-2 text-sm text-fg-primary file:mr-3 file:rounded-md file:border-0 file:bg-accent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-accent-contrast hover:file:bg-accent-hover"
         />
         <p className="text-xs text-fg-muted">
           Accepted formats: MP4, MOV, WEBM. Max size:{" "}
@@ -132,14 +132,14 @@ export default function VideoUploadForm() {
           onChange={(event) => setName(event.target.value)}
           disabled={submitting}
           placeholder="Generated from filename"
-          className="block w-full rounded-md border border-white/[0.08] bg-surface-page px-3 py-2 text-sm text-fg-primary outline-none focus:border-accent"
+          className="block w-full rounded-md border border-border bg-surface-page px-3 py-2 text-sm text-fg-primary outline-none focus:border-accent"
         />
         <p className="text-xs text-fg-muted">
           Defaults to the filename without the extension.
         </p>
       </div>
 
-      <div className="grid gap-3 rounded-md border border-white/[0.08] bg-surface-page/50 p-3 text-sm sm:grid-cols-2">
+      <div className="grid gap-3 rounded-md border border-border bg-surface-page/50 p-3 text-sm sm:grid-cols-2">
         <MetadataRow
           label="Filename"
           value={file?.name ?? "No file selected"}
@@ -194,7 +194,7 @@ export default function VideoUploadForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? "Uploading..." : "Upload video"}
         </button>
