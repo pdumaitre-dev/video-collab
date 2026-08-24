@@ -2,6 +2,18 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { listVideoBlobs } from "@/lib/blob";
 
+export interface CommentResponse {
+  id: number;
+  pathname: string;
+  startSeconds: number;
+  endSeconds: number;
+  text: string;
+  parentId: number | null;
+  createdAt: string;
+  updatedAt: string;
+  replies: CommentResponse[];
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const pathname = searchParams.get("pathname");
@@ -21,17 +33,33 @@ export async function GET(request: Request) {
       orderBy: [{ startSeconds: "asc" }, { createdAt: "asc" }]
     });
 
-    return NextResponse.json(
-      comments.map((c) => ({
+    const commentMap = new Map<number, CommentResponse>();
+    const rootComments: CommentResponse[] = [];
+
+    for (const c of comments) {
+      commentMap.set(c.id, {
         id: c.id,
         pathname: c.pathname,
         startSeconds: c.startSeconds,
         endSeconds: c.endSeconds,
         text: c.text,
+        parentId: c.parentId,
         createdAt: c.createdAt.toISOString(),
-        updatedAt: c.updatedAt.toISOString()
-      }))
-    );
+        updatedAt: c.updatedAt.toISOString(),
+        replies: []
+      });
+    }
+
+    for (const c of comments) {
+      const formatted = commentMap.get(c.id)!;
+      if (c.parentId && commentMap.has(c.parentId)) {
+        commentMap.get(c.parentId)!.replies.push(formatted);
+      } else {
+        rootComments.push(formatted);
+      }
+    }
+
+    return NextResponse.json(rootComments);
   } catch (error) {
     console.error("Error fetching blob comments", error);
     return NextResponse.json(
@@ -50,11 +78,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { pathname, startSeconds, endSeconds, text } = body as {
+  const { pathname, startSeconds, endSeconds, text, parentId } = body as {
     pathname?: string;
     startSeconds?: number;
     endSeconds?: number;
     text?: string;
+    parentId?: number | null;
   };
 
   if (!pathname || typeof pathname !== "string") {
@@ -68,25 +97,6 @@ export async function POST(request: Request) {
   if (!trimmedPathname) {
     return NextResponse.json(
       { error: "pathname cannot be empty" },
-      { status: 400 }
-    );
-  }
-
-  if (
-    typeof startSeconds !== "number" ||
-    typeof endSeconds !== "number" ||
-    !Number.isFinite(startSeconds) ||
-    !Number.isFinite(endSeconds)
-  ) {
-    return NextResponse.json(
-      { error: "startSeconds and endSeconds must be numbers" },
-      { status: 400 }
-    );
-  }
-
-  if (!(startSeconds >= 0 && startSeconds < endSeconds)) {
-    return NextResponse.json(
-      { error: "Invalid time range" },
       { status: 400 }
     );
   }
@@ -110,12 +120,64 @@ export async function POST(request: Request) {
       );
     }
 
+    let finalStartSeconds: number;
+    let finalEndSeconds: number;
+    let validatedParentId: number | null = null;
+
+    if (parentId !== undefined && parentId !== null) {
+      const parsedParentId = Number(parentId);
+      if (!Number.isFinite(parsedParentId) || parsedParentId <= 0) {
+        return NextResponse.json(
+          { error: "parentId must be a positive number" },
+          { status: 400 }
+        );
+      }
+
+      const parentComment = await prisma.comment_blob.findUnique({
+        where: { id: parsedParentId }
+      });
+
+      if (!parentComment || parentComment.pathname !== trimmedPathname) {
+        return NextResponse.json(
+          { error: "Parent comment not found" },
+          { status: 404 }
+        );
+      }
+
+      validatedParentId = parentComment.id;
+      finalStartSeconds = parentComment.startSeconds;
+      finalEndSeconds = parentComment.endSeconds;
+    } else {
+      if (
+        typeof startSeconds !== "number" ||
+        typeof endSeconds !== "number" ||
+        !Number.isFinite(startSeconds) ||
+        !Number.isFinite(endSeconds)
+      ) {
+        return NextResponse.json(
+          { error: "startSeconds and endSeconds must be numbers" },
+          { status: 400 }
+        );
+      }
+
+      if (!(startSeconds >= 0 && startSeconds < endSeconds)) {
+        return NextResponse.json(
+          { error: "Invalid time range" },
+          { status: 400 }
+        );
+      }
+
+      finalStartSeconds = startSeconds;
+      finalEndSeconds = endSeconds;
+    }
+
     const comment = await prisma.comment_blob.create({
       data: {
         pathname: trimmedPathname,
-        startSeconds,
-        endSeconds,
-        text: trimmed
+        startSeconds: finalStartSeconds,
+        endSeconds: finalEndSeconds,
+        text: trimmed,
+        parentId: validatedParentId
       }
     });
 
@@ -126,8 +188,10 @@ export async function POST(request: Request) {
         startSeconds: comment.startSeconds,
         endSeconds: comment.endSeconds,
         text: comment.text,
+        parentId: comment.parentId,
         createdAt: comment.createdAt.toISOString(),
-        updatedAt: comment.updatedAt.toISOString()
+        updatedAt: comment.updatedAt.toISOString(),
+        replies: []
       },
       { status: 201 }
     );

@@ -51,16 +51,8 @@ export default function FileVideoPageShell({
         `/api/blob/comments?pathname=${encodeURIComponent(pathname)}`
       )
         .then((res) => (res.ok ? res.json() : []))
-        .then((data: Array<{ id: number; startSeconds: number; endSeconds: number; text: string; createdAt: string }>) => {
-          setInitialComments(
-            data.map((c) => ({
-              id: c.id,
-              startSeconds: c.startSeconds,
-              endSeconds: c.endSeconds,
-              text: c.text,
-              createdAt: c.createdAt
-            }))
-          );
+        .then((data: CommentData[]) => {
+          setInitialComments(data);
         })
         .catch(() => setInitialComments([]));
     } else {
@@ -69,7 +61,7 @@ export default function FileVideoPageShell({
   }, [pathname, sourceUrl]);
 
   const persistComment: PersistCommentFn = React.useCallback(
-    async (range, text) => {
+    async (range, text, parentId) => {
       if (pathname) {
         const res = await fetch("/api/blob/comments", {
           method: "POST",
@@ -78,7 +70,8 @@ export default function FileVideoPageShell({
             pathname,
             startSeconds: range.startSeconds,
             endSeconds: range.endSeconds,
-            text
+            text,
+            parentId: parentId ?? undefined
           })
         });
 
@@ -92,7 +85,9 @@ export default function FileVideoPageShell({
           startSeconds: number;
           endSeconds: number;
           text: string;
+          parentId?: number | null;
           createdAt: string;
+          replies?: CommentData[];
         };
 
         return {
@@ -100,7 +95,9 @@ export default function FileVideoPageShell({
           startSeconds: created.startSeconds,
           endSeconds: created.endSeconds,
           text: created.text,
-          createdAt: created.createdAt
+          parentId: created.parentId,
+          createdAt: created.createdAt,
+          replies: created.replies ?? []
         };
       }
 
@@ -110,11 +107,35 @@ export default function FileVideoPageShell({
         startSeconds: range.startSeconds,
         endSeconds: range.endSeconds,
         text,
-        createdAt: new Date().toISOString()
+        parentId: parentId ?? null,
+        createdAt: new Date().toISOString(),
+        replies: []
       };
-      const updated = [...current, newComment].sort(
-        (a, b) => a.startSeconds - b.startSeconds
-      );
+
+      let updated: CommentData[];
+      if (parentId) {
+        const addReply = (items: CommentData[]): CommentData[] =>
+          items.map((item) => {
+            if (item.id === parentId) {
+              return {
+                ...item,
+                replies: [...(item.replies ?? []), newComment]
+              };
+            }
+            if (item.replies && item.replies.length > 0) {
+              return {
+                ...item,
+                replies: addReply(item.replies)
+              };
+            }
+            return item;
+          });
+        updated = addReply(current);
+      } else {
+        updated = [...current, newComment].sort(
+          (a, b) => a.startSeconds - b.startSeconds
+        );
+      }
       saveCommentsToStorage(sourceUrl, updated);
       return newComment;
     },
@@ -134,7 +155,19 @@ export default function FileVideoPageShell({
         }
       } else {
         const current = loadCommentsFromStorage(sourceUrl);
-        const updated = current.filter((c) => c.id !== commentId);
+        const removeFromTree = (items: CommentData[]): CommentData[] =>
+          items
+            .filter((item) => item.id !== commentId)
+            .map((item) => {
+              if (item.replies && item.replies.length > 0) {
+                return {
+                  ...item,
+                  replies: removeFromTree(item.replies)
+                };
+              }
+              return item;
+            });
+        const updated = removeFromTree(current);
         saveCommentsToStorage(sourceUrl, updated);
       }
     },
