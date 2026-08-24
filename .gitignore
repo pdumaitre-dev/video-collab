@@ -19,6 +19,7 @@ yarn-error.log*
 !.cursor/skills/
 !.cursor/skills/**
 !.cursor/sandbox.json
+!.cursor/BUGBOT.md
 
 .vercel
 .env*.local

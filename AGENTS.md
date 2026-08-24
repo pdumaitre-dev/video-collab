@@ -86,6 +86,10 @@ No CD, no `next build`, no migrations, no secrets in CI.
 - **No local PostgreSQL.** Use the remote Neon instance.
 - **ESLint:** `.eslintrc.json` extends `next/core-web-vitals` so `npm run lint` stays non-interactive.
 
+## Bugbot
+
+Nested `.cursor/BUGBOT.md` files guide Bugbot PR reviews (root always; `app/api/` and `components/` when those trees change). Cursor agent `*.mdc` rules in `.cursor/rules/` do not apply to Bugbot. Root `.cursor/*` is gitignored except `BUGBOT.md`, `rules/*.mdc`, `skills/`, and `sandbox.json`.
+
 ## Skills
 
 - **Core critical-path smoke test:** `.cursor/skills/core-e2e-smoke-test/SKILL.md`
