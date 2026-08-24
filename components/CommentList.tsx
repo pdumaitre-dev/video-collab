@@ -123,7 +123,6 @@ export default function CommentList({
                 : "border-white/[0.08] bg-surface-card hover:border-white/[0.12]"
             }`}
           >
-            {/* Top-level comment content */}
             <div
               className="cursor-pointer"
               onClick={() => onSelect(c.id)}
@@ -158,7 +157,6 @@ export default function CommentList({
               <p className="text-fg-primary leading-relaxed">{c.text}</p>
             </div>
 
-            {/* Thread footer / controls */}
             <div className="mt-2.5 flex items-center gap-3 border-t border-white/[0.04] pt-2 text-xs">
               {replyCount > 0 && (
                 <button
@@ -197,7 +195,6 @@ export default function CommentList({
               )}
             </div>
 
-            {/* Expanded replies */}
             {isExpanded && replyCount > 0 && (
               <div className="mt-2.5 space-y-2 border-l-2 border-white/[0.08] pl-3">
                 {replies.map((reply) => {
@@ -245,7 +242,6 @@ export default function CommentList({
               </div>
             )}
 
-            {/* Inline reply form */}
             {isReplying && (
               <form
                 onSubmit={(e) => handleSubmitReply(e, c.id)}

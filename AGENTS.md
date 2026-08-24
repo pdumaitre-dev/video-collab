@@ -33,6 +33,7 @@ with open('.env','w') as f:
 
 - **Dev server:** `npm run dev` (port 3000)
 - **Lint:** `npm run lint`
+- **Tests:** `npm test`
 - **Build:** `npm run build`
 - **Prisma client:** `npm run prisma:generate` (also runs on `npm install` via `postinstall`)
 - **Migrations (local / CI with wire access):** `npx prisma migrate deploy`
