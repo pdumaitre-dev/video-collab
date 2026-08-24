@@ -33,6 +33,7 @@ with open('.env','w') as f:
 
 - **Dev server:** `npm run dev` (port 3000)
 - **Lint:** `npm run lint`
+- **Typecheck:** `npm run typecheck`
 - **Build:** `npm run build`
 - **Prisma client:** `npm run prisma:generate` (also runs on `npm install` via `postinstall`)
 - **Migrations (local / CI with wire access):** `npx prisma migrate deploy`
@@ -66,6 +67,16 @@ The core smoke skill (`.cursor/skills/core-e2e-smoke-test/SKILL.md`) expects the
 - If that title is missing, use **any** listed video that shows existing comments and green ranges; record the substitute title in the report
 
 `prisma/seed.ts` does not create Blob objects or `Comment_blob` rows — do not use seed to satisfy smoke preconditions.
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR to `next`. Three parallel jobs:
+
+- **lint** — `npm ci` + `npm run lint`
+- **typecheck** — `npm ci` + `npm run typecheck` (no `DATABASE_URL` needed)
+- **test** — stub job that always passes (no real test suite on this branch)
+
+No CD, no `next build`, no migrations, no secrets in CI.
 
 ## Local development
 

@@ -55,6 +55,10 @@ Current UI behavior uses `Video` and `Comment_blob`. The older `Comment` model i
 - For private playback, `components/VideoPlayer.tsx` fetches the full file and swaps to a blob URL so browser seeking still works.
 - `components/TimeBar.tsx` exposes one shared horizontal scale for ruler ticks and the seek bar so drag-to-select can begin on either surface and end anywhere on the page.
 
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) on push/PR to `next`: **lint**, **typecheck**, and a **test** stub (always green; no real unit tests). No deploy step, no `next build`, no Prisma migrate in CI.
+
 ## Legacy Paths To Review
 
 - `lib/blob-storage.ts`: appears unused.
