@@ -2,17 +2,22 @@
 
 import * as React from "react";
 import VideoPageShell, {
+  type ChapterData,
   type CommentData,
+  type DeleteChapterFn,
+  type DeleteCommentFn,
+  type PersistChapterFn,
   type PersistCommentFn,
-  type DeleteCommentFn
+  type UpdateChapterFn
 } from "../../[videoId]/VideoPageShell";
 
-const STORAGE_PREFIX = "video-comments:";
+const COMMENT_STORAGE_PREFIX = "video-comments:";
+const CHAPTER_STORAGE_PREFIX = "video-chapters:";
 
 function loadCommentsFromStorage(sourceUrl: string): CommentData[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + sourceUrl);
+    const raw = localStorage.getItem(COMMENT_STORAGE_PREFIX + sourceUrl);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as CommentData[];
     return Array.isArray(parsed) ? parsed : [];
@@ -24,7 +29,34 @@ function loadCommentsFromStorage(sourceUrl: string): CommentData[] {
 function saveCommentsToStorage(sourceUrl: string, comments: CommentData[]) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_PREFIX + sourceUrl, JSON.stringify(comments));
+    localStorage.setItem(
+      COMMENT_STORAGE_PREFIX + sourceUrl,
+      JSON.stringify(comments)
+    );
+  } catch {
+    // ignore
+  }
+}
+
+function loadChaptersFromStorage(sourceUrl: string): ChapterData[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(CHAPTER_STORAGE_PREFIX + sourceUrl);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as ChapterData[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveChaptersToStorage(sourceUrl: string, chapters: ChapterData[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      CHAPTER_STORAGE_PREFIX + sourceUrl,
+      JSON.stringify(chapters)
+    );
   } catch {
     // ignore
   }
@@ -33,7 +65,7 @@ function saveCommentsToStorage(sourceUrl: string, comments: CommentData[]) {
 interface FileVideoPageShellProps {
   sourceUrl: string;
   title: string;
-  /** Blob pathname (e.g. "videos/sample.mp4"). When provided, comments are persisted in Comment_blob table. */
+  /** Blob pathname (e.g. "videos/sample.mp4"). When provided, timeline data is persisted in the database. */
   pathname?: string;
 }
 
@@ -44,6 +76,8 @@ export default function FileVideoPageShell({
 }: FileVideoPageShellProps) {
   const [initialComments, setInitialComments] =
     React.useState<CommentData[]>(() => []);
+  const [initialChapters, setInitialChapters] =
+    React.useState<ChapterData[]>(() => []);
 
   React.useEffect(() => {
     if (pathname) {
@@ -63,8 +97,26 @@ export default function FileVideoPageShell({
           );
         })
         .catch(() => setInitialComments([]));
+
+      fetch(
+        `/api/blob/chapters?pathname=${encodeURIComponent(pathname)}`
+      )
+        .then((res) => (res.ok ? res.json() : []))
+        .then((data: Array<{ id: number; seconds: number; label: string; color: string | null; createdAt: string }>) => {
+          setInitialChapters(
+            data.map((chapter) => ({
+              id: chapter.id,
+              seconds: chapter.seconds,
+              label: chapter.label,
+              color: chapter.color,
+              createdAt: chapter.createdAt
+            }))
+          );
+        })
+        .catch(() => setInitialChapters([]));
     } else {
       setInitialComments(loadCommentsFromStorage(sourceUrl));
+      setInitialChapters(loadChaptersFromStorage(sourceUrl));
     }
   }, [pathname, sourceUrl]);
 
@@ -141,6 +193,142 @@ export default function FileVideoPageShell({
     [pathname, sourceUrl]
   );
 
+  const persistChapter: PersistChapterFn = React.useCallback(
+    async ({ label, seconds, color, durationSeconds }) => {
+      if (pathname) {
+        const res = await fetch("/api/blob/chapters", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pathname,
+            label,
+            seconds,
+            color,
+            durationSeconds
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? "Failed to create chapter");
+        }
+
+        const created = (await res.json()) as {
+          id: number;
+          seconds: number;
+          label: string;
+          color: string | null;
+          createdAt: string;
+        };
+
+        return {
+          id: created.id,
+          seconds: created.seconds,
+          label: created.label,
+          color: created.color,
+          createdAt: created.createdAt
+        };
+      }
+
+      const current = loadChaptersFromStorage(sourceUrl);
+      const newChapter: ChapterData = {
+        id: Date.now(),
+        seconds,
+        label,
+        color,
+        createdAt: new Date().toISOString()
+      };
+      const updated = [...current, newChapter].sort(
+        (a, b) => a.seconds - b.seconds
+      );
+      saveChaptersToStorage(sourceUrl, updated);
+      return newChapter;
+    },
+    [pathname, sourceUrl]
+  );
+
+  const updateChapter: UpdateChapterFn = React.useCallback(
+    async (chapterId, { label, seconds, color, durationSeconds }) => {
+      if (pathname) {
+        const res = await fetch("/api/blob/chapters", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: chapterId,
+            label,
+            seconds,
+            color,
+            durationSeconds
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? "Failed to update chapter");
+        }
+
+        const updated = (await res.json()) as {
+          id: number;
+          seconds: number;
+          label: string;
+          color: string | null;
+          createdAt: string;
+        };
+
+        return {
+          id: updated.id,
+          seconds: updated.seconds,
+          label: updated.label,
+          color: updated.color,
+          createdAt: updated.createdAt
+        };
+      }
+
+      const current = loadChaptersFromStorage(sourceUrl);
+      const updated = current
+        .map((chapter) =>
+          chapter.id === chapterId
+            ? {
+                ...chapter,
+                label,
+                seconds,
+                color
+              }
+            : chapter
+        )
+        .sort((a, b) => a.seconds - b.seconds);
+      saveChaptersToStorage(sourceUrl, updated);
+
+      const chapter = updated.find((item) => item.id === chapterId);
+      if (!chapter) {
+        throw new Error("Chapter not found");
+      }
+
+      return chapter;
+    },
+    [pathname, sourceUrl]
+  );
+
+  const deleteChapter: DeleteChapterFn = React.useCallback(
+    async (chapterId: number) => {
+      if (pathname) {
+        const res = await fetch(
+          `/api/blob/chapters?id=${chapterId}`,
+          { method: "DELETE" }
+        );
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? "Failed to delete chapter");
+        }
+      } else {
+        const current = loadChaptersFromStorage(sourceUrl);
+        const updated = current.filter((chapter) => chapter.id !== chapterId);
+        saveChaptersToStorage(sourceUrl, updated);
+      }
+    },
+    [pathname, sourceUrl]
+  );
+
   return (
     <VideoPageShell
       video={{
@@ -149,8 +337,12 @@ export default function FileVideoPageShell({
         durationSeconds: null
       }}
       initialComments={initialComments}
+      initialChapters={initialChapters}
       persistComment={persistComment}
       deleteComment={deleteComment}
+      persistChapter={persistChapter}
+      updateChapter={updateChapter}
+      deleteChapter={deleteChapter}
     />
   );
 }
