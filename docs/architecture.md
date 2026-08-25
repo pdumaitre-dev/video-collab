@@ -61,7 +61,6 @@ GitHub Actions (`.github/workflows/ci.yml`) on push/PR to `next`: **lint**, **ty
 
 ## Legacy Paths To Review
 
-- `lib/blob-storage.ts`: appears unused.
 - `prisma/seed.ts`: still targets the older static sample-video path.
 - `app/videos/watch/[filename]/page.tsx`: manual static-file route, not linked from the main UI.
 
