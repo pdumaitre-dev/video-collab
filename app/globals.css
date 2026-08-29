@@ -3,6 +3,40 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --surface-page: #0a0a0c;
+    --surface-panel: #121216;
+    --surface-card: #1a1a1f;
+    --surface-elevated: #222228;
+    --fg-primary: #f4f4f5;
+    --fg-secondary: #a1a1aa;
+    --fg-muted: #71717a;
+    --fg-disabled: #52525b;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+    --accent-muted: rgba(59, 130, 246, 0.15);
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-emphasis: rgba(255, 255, 255, 0.12);
+    --shadow-panel: 0 4px 24px -4px rgba(0, 0, 0, 0.4);
+  }
+
+  html.light {
+    --surface-page: #f4f4f5;
+    --surface-panel: #ececee;
+    --surface-card: #ffffff;
+    --surface-elevated: #fafafa;
+    --fg-primary: #18181b;
+    --fg-secondary: #52525b;
+    --fg-muted: #71717a;
+    --fg-disabled: #a1a1aa;
+    --accent: #2563eb;
+    --accent-hover: #3b82f6;
+    --accent-muted: rgba(37, 99, 235, 0.12);
+    --border-subtle: rgba(0, 0, 0, 0.08);
+    --border-emphasis: rgba(0, 0, 0, 0.12);
+    --shadow-panel: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
+  }
+
   body {
     @apply antialiased bg-surface-page text-fg-primary;
     font-family: var(--font-body), system-ui, sans-serif;
@@ -12,4 +46,3 @@
     font-family: var(--font-heading), system-ui, sans-serif;
   }
 }
-

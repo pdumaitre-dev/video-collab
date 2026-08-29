@@ -14,22 +14,29 @@ const config: Config = {
       },
       colors: {
         surface: {
-          page: "#0a0a0c",
-          panel: "#121216",
-          card: "#1a1a1f",
-          elevated: "#222228"
+          page: "var(--surface-page)",
+          panel: "var(--surface-panel)",
+          card: "var(--surface-card)",
+          elevated: "var(--surface-elevated)"
         },
         fg: {
-          primary: "#f4f4f5",
-          secondary: "#a1a1aa",
-          muted: "#71717a",
-          disabled: "#52525b"
+          primary: "var(--fg-primary)",
+          secondary: "var(--fg-secondary)",
+          muted: "var(--fg-muted)",
+          disabled: "var(--fg-disabled)"
         },
         accent: {
-          DEFAULT: "#3b82f6",
-          hover: "#60a5fa",
-          muted: "rgba(59, 130, 246, 0.15)"
+          DEFAULT: "var(--accent)",
+          hover: "var(--accent-hover)",
+          muted: "var(--accent-muted)"
+        },
+        divider: {
+          DEFAULT: "var(--border-subtle)",
+          emphasis: "var(--border-emphasis)"
         }
+      },
+      boxShadow: {
+        panel: "var(--shadow-panel)"
       }
     }
   },
@@ -37,4 +44,3 @@ const config: Config = {
 };
 
 export default config;
-

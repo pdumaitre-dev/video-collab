@@ -29,7 +29,10 @@ Fonts are loaded via `next/font/google` in `app/layout.tsx` and exposed as CSS v
 
 ## Color Palette
 
-### Surfaces (Backgrounds)
+Semantic colors are **CSS variables** in `app/globals.css`. **Dark** is the default (`:root`). **Light** applies when `html` has class `light` (see Theme below). Tailwind maps `surface-*`, `fg-*`, `accent`, and `divider` to those variables.
+
+### Dark (default)
+
 
 | Token | Hex | Usage |
 |-------|-----|-------|
@@ -55,9 +58,28 @@ Fonts are loaded via `next/font/google` in `app/layout.tsx` and exposed as CSS v
 | `accent-hover` | `#60a5fa` | Hover state for accent buttons |
 | `accent-muted` | `rgba(59, 130, 246, 0.15)` | Selected states, subtle highlights |
 
+### Light (`html.light`)
+
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `surface-page` | `#f4f4f5` | Page background |
+| `surface-panel` | `#ececee` | Side panels |
+| `surface-card` | `#ffffff` | Cards |
+| `surface-elevated` | `#fafafa` | Hover states |
+| `fg-primary` | `#18181b` | Primary text |
+| `fg-secondary` | `#52525b` | Secondary text |
+| `accent` | `#2563eb` | Primary actions (hover `#3b82f6`) |
+
 ### Borders
 
-Use `border-white/[0.08]` for default borders and `border-white/[0.12]` for hover/emphasis. Avoid opaque gray borders for a cleaner look.
+Use `border-divider` for default borders and `border-divider-emphasis` for hover/emphasis. Values are theme-aware (`rgba` white in dark, black in light). Avoid hard-coded `border-white/[0.08]`.
+
+## Theme
+
+- **Toggle:** Header sun/moon control (`components/ui/ThemeToggle.tsx`).
+- **Persistence:** `localStorage` key `bb-theme` (`light` | `dark`).
+- **Default:** System `prefers-color-scheme` when no stored preference; dark palette on `:root`, light on `html.light`.
+- **No flash:** Inline `ThemeInitScript` in `app/theme-init.tsx` runs before paint.
 
 ## Surface Hierarchy
 
@@ -70,7 +92,7 @@ surface-page (deepest)
 
 - **Page**: Base background. No content sits directly on it without a card or panel.
 - **Panel**: Distinct side areas (e.g. comments). Use `rounded-lg`, subtle shadow for depth.
-- **Card**: Form containers, list items. Use `rounded-lg`, `border-white/[0.08]`.
+- **Card**: Form containers, list items. Use `rounded-lg`, `border-divider`.
 - **Elevated**: Hover/active states. Slightly lighter than card.
 
 ## Navigation and Buttons
@@ -99,20 +121,20 @@ surface-page (deepest)
 
 ### Panel
 
-- Comments column uses `bg-surface-panel`, `rounded-lg`, `border-white/[0.08]`.
-- Optional subtle shadow: `shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]` for depth.
+- Comments column uses `bg-surface-panel`, `rounded-lg`, `border-divider`.
+- Optional subtle shadow: `shadow-panel` for depth.
 
 ### Comment Form
 
 - Card-style container: `bg-surface-card`, `rounded-lg`, `p-4`.
 - When no range selected: no header; placeholder "Select a time range on the timeline to add a comment." When selected: header "Add comment on range" with range inline (e.g. `0:00 – 1:30`).
-- Textarea: `bg-surface-page`, `border-white/[0.08]`, `focus:border-accent`.
+- Textarea: `bg-surface-page`, `border-divider`, `focus:border-accent`.
 - Submit: `bg-accent`, white text, disabled state with `opacity-50`.
 
 ### Comment List
 
 - Empty state: Dashed border, centered message, two-line hint.
-- Comment items: `rounded-lg`, `bg-surface-card`, `border-white/[0.08]`.
+- Comment items: `rounded-lg`, `bg-surface-card`, `border-divider`.
 - Delete button: trash icon, shown on hover; red hover state, loading spinner while deleting.
 - Selected: `border-accent`, `bg-accent-muted`, `ring-1 ring-accent/30`.
 - Metadata (time range, created): `font-mono`, `text-fg-muted`, `text-[11px]`.
@@ -120,8 +142,8 @@ surface-page (deepest)
 ## Depth and Feel (Without Images)
 
 - **Layered surfaces**: Use page → panel → card → elevated hierarchy.
-- **Borders**: Hairline `border-white/[0.08]` and `border-white/[0.12]` for separation.
-- **Shadows**: Restrained, e.g. `shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]` on panels.
+- **Borders**: Hairline `border-divider` and `border-divider-emphasis` for separation.
+- **Shadows**: Restrained `shadow-panel` on panels.
 - **Rounded corners**: `rounded-lg` for cards/panels, `rounded-md` for inputs/buttons.
 - **Spacing**: Consistent `space-y-*` and `gap-*` for rhythm.
 - **Transitions**: `transition-colors` or `transition-all` on interactive elements.
