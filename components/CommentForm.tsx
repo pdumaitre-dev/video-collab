@@ -10,11 +10,13 @@ interface SelectedRange {
 interface CommentFormProps {
   selectedRange: SelectedRange | null;
   onSubmit: (text: string) => Promise<void> | void;
+  onDismiss?: () => void;
 }
 
 export default function CommentForm({
   selectedRange,
-  onSubmit
+  onSubmit,
+  onDismiss
 }: CommentFormProps) {
   const [text, setText] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
@@ -54,7 +56,16 @@ export default function CommentForm({
         onChange={(e) => setText(e.target.value)}
         disabled={!selectedRange || submitting}
       />
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {selectedRange && onDismiss && (
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="rounded-md border border-white/[0.08] px-3 py-2 text-sm font-medium text-fg-secondary transition-colors hover:border-white/[0.12] hover:bg-surface-elevated hover:text-fg-primary"
+          >
+            Dismiss range
+          </button>
+        )}
         <button
           type="submit"
           disabled={!selectedRange || !text.trim() || submitting}

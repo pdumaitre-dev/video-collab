@@ -29,6 +29,11 @@ export type PersistCommentFn = (
 
 export type DeleteCommentFn = (commentId: number) => Promise<void>;
 
+type LoopRange = {
+  startSeconds: number;
+  endSeconds: number;
+};
+
 interface VideoPageShellProps {
   video: VideoForClient;
   initialComments: CommentData[];
@@ -65,6 +70,9 @@ export default function VideoPageShell({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
+  const [isLoopRangeEnabled, setIsLoopRangeEnabled] = React.useState(true);
+  const [activeLoopRange, setActiveLoopRange] =
+    React.useState<LoopRange | null>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   React.useEffect(() => {
@@ -83,11 +91,66 @@ export default function VideoPageShell({
     return () => clearInterval(id);
   }, [duration]);
 
-  const handleSeek = (time: number) => {
+  const seekTo = React.useCallback((time: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
     }
     setCurrentTime(time);
+  }, []);
+
+  const getSelectedCommentRange = React.useCallback((): LoopRange | null => {
+    if (selectedCommentId === null) return null;
+    const comment = comments.find((c) => c.id === selectedCommentId);
+    if (!comment) return null;
+    return {
+      startSeconds: comment.startSeconds,
+      endSeconds: comment.endSeconds
+    };
+  }, [comments, selectedCommentId]);
+
+  const getCurrentLoopCandidate = React.useCallback((): LoopRange | null => {
+    if (selectedRange) return selectedRange;
+    return getSelectedCommentRange();
+  }, [getSelectedCommentRange, selectedRange]);
+
+  const activateLoopRange = React.useCallback(
+    (range: LoopRange | null) => {
+      if (!isLoopRangeEnabled || !range || range.endSeconds <= range.startSeconds) {
+        setActiveLoopRange(null);
+        return;
+      }
+      setActiveLoopRange(range);
+    },
+    [isLoopRangeEnabled]
+  );
+
+  const handleTimeUpdate = React.useCallback(
+    (time: number) => {
+      if (
+        isLoopRangeEnabled &&
+        activeLoopRange &&
+        activeLoopRange.endSeconds > activeLoopRange.startSeconds &&
+        time >= activeLoopRange.endSeconds
+      ) {
+        seekTo(activeLoopRange.startSeconds);
+        return;
+      }
+
+      setCurrentTime(time);
+    },
+    [activeLoopRange, isLoopRangeEnabled, seekTo]
+  );
+
+  const handleTimelineSeek = (time: number) => {
+    setSelectedRange(null);
+    setSelectedCommentId(null);
+    setActiveLoopRange(null);
+    seekTo(time);
+  };
+
+  const handleLoopToggle = (enabled: boolean) => {
+    setIsLoopRangeEnabled(enabled);
+    setActiveLoopRange(enabled ? getCurrentLoopCandidate() : null);
   };
 
   const handleTogglePlayback = async () => {
@@ -104,6 +167,7 @@ export default function VideoPageShell({
     }
 
     videoElement.pause();
+    setActiveLoopRange(null);
   };
 
   const handleNewComment = async (text: string) => {
@@ -125,6 +189,7 @@ export default function VideoPageShell({
       [...prev, created].sort((a, b) => a.startSeconds - b.startSeconds)
     );
     setSelectedRange(null);
+    setActiveLoopRange(null);
   };
 
   const handleDeleteComment = async (commentId: number) => {
@@ -132,15 +197,42 @@ export default function VideoPageShell({
     setComments((prev) => prev.filter((c) => c.id !== commentId));
     if (selectedCommentId === commentId) {
       setSelectedCommentId(null);
+      setActiveLoopRange(null);
     }
   };
 
   const handleSelectComment = (commentId: number) => {
     setSelectedCommentId(commentId);
+    setSelectedRange(null);
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
-      handleSeek(comment.startSeconds);
+      const range = {
+        startSeconds: comment.startSeconds,
+        endSeconds: comment.endSeconds
+      };
+      activateLoopRange(range);
+      seekTo(comment.startSeconds);
     }
+  };
+
+  const handleRangeSelected = (
+    rangeStartSeconds: number,
+    rangeEndSeconds: number,
+    dragEndSeconds: number
+  ) => {
+    const range = {
+      startSeconds: rangeStartSeconds,
+      endSeconds: rangeEndSeconds
+    };
+    setSelectedCommentId(null);
+    setSelectedRange(range);
+    activateLoopRange(range);
+    seekTo(isLoopRangeEnabled ? rangeStartSeconds : dragEndSeconds);
+  };
+
+  const handleDismissSelectedRange = () => {
+    setSelectedRange(null);
+    setActiveLoopRange(null);
   };
 
   return (
@@ -158,11 +250,14 @@ export default function VideoPageShell({
           <VideoPlayer
             src={video.sourceUrl}
             videoRef={videoRef}
-            onTimeUpdate={setCurrentTime}
+            onTimeUpdate={handleTimeUpdate}
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={() => {
+              setIsPlaying(false);
+              setActiveLoopRange(null);
+            }}
           />
           <div className="flex items-center">
             <button
@@ -204,26 +299,32 @@ export default function VideoPageShell({
               currentTime={currentTime}
               comments={comments}
               selectedRange={selectedRange}
-              onSeek={handleSeek}
-              onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
-                setSelectedRange({
-                  startSeconds: rangeStartSeconds,
-                  endSeconds: rangeEndSeconds
-                });
-                handleSeek(dragEndSeconds);
-              }}
+              onSeek={handleTimelineSeek}
+              onRangeSelected={handleRangeSelected}
             />
           </div>
           <CommentForm
             selectedRange={selectedRange}
             onSubmit={handleNewComment}
+            onDismiss={handleDismissSelectedRange}
           />
         </div>
       </div>
       <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
-        <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
-          Comments
-        </h3>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="font-heading text-sm font-semibold tracking-tight text-fg-primary">
+            Comments
+          </h3>
+          <label className="inline-flex items-center gap-2 text-xs text-fg-secondary">
+            <input
+              type="checkbox"
+              checked={isLoopRangeEnabled}
+              onChange={(event) => handleLoopToggle(event.target.checked)}
+              className="h-4 w-4 rounded border-white/[0.12] bg-surface-card accent-accent"
+            />
+            Loop range
+          </label>
+        </div>
         <CommentList
           comments={comments}
           selectedCommentId={selectedCommentId}

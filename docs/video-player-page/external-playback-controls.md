@@ -7,6 +7,8 @@ Playback on the video page is controlled by an external play/pause button in `ap
 - The button calls `video.play()` or `video.pause()` through `videoRef`.
 - UI state stays event-driven.
 - The video element is the source of truth.
+- Range looping is owned by `VideoPageShell`: when the comment panel `Loop range` toggle is on, selecting a saved comment or draft range activates a loop that seeks back to `startSeconds` once `timeupdate` reaches `endSeconds`.
+- Pausing playback, saving/dismissing a draft range, deleting the selected comment, or seeking elsewhere clears the active loop.
 
 ## Event Contract
 
@@ -29,3 +31,10 @@ Playback on the video page is controlled by an external play/pause button in `ap
 - `onPlay` => `isPlaying = true`
 - `onPause` => `isPlaying = false`
 - `onEnded` => `isPlaying = false`
+
+## Range Looping
+
+- Default: enabled.
+- Saved comments: selecting a comment seeks to `startSeconds` and arms the selected range.
+- Draft comments: selecting a timeline range seeks to `startSeconds` and arms that range until the draft is saved, dismissed, replaced, or deselected.
+- Toggle off: selection still works, but playback only seeks once.
