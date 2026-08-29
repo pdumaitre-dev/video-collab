@@ -86,6 +86,13 @@ No CD, no `next build`, no migrations, no secrets in CI.
 - **No local PostgreSQL.** Use the remote Neon instance.
 - **ESLint:** `.eslintrc.json` extends `next/core-web-vitals` so `npm run lint` stays non-interactive.
 
+## Cursor Cloud specific instructions
+
+- **Node 24 PATH override.** The VM ships `/exec-daemon/node` (v22) ahead of nvm in `$PATH`. The update script prepends `$HOME/.nvm/versions/node/v24.16.0/bin` so `node -v` resolves to 24.x. If a future nvm install changes the patch version, update that path accordingly.
+- **`.env` from injected secrets.** The update script writes `.env` from `DATABASE_URL` and `BLOB_READ_WRITE_TOKEN` env vars. No manual editing required.
+- **Dev server startup.** `npm run dev` in a tmux session; verify with `curl -s -o /dev/null -w '%{http_code}' http://localhost:3000` (expect 200).
+- **Comment CRUD hello-world.** POST/GET/DELETE on `/api/blob/comments?pathname=videos/nadia_480.mov` exercises Neon DB + Blob integration end-to-end.
+
 ## Skills
 
 - **Core critical-path smoke test:** `.cursor/skills/core-e2e-smoke-test/SKILL.md`
