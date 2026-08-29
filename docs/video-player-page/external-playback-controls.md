@@ -29,3 +29,12 @@ Playback on the video page is controlled by an external play/pause button in `ap
 - `onPlay` => `isPlaying = true`
 - `onPause` => `isPlaying = false`
 - `onEnded` => `isPlaying = false`
+
+## Range Looping
+
+- `VideoPageShell` owns selected-range looping for comments and draft comment ranges.
+- The comments panel shows a `Loop range` switch; it defaults on.
+- Clicking a saved comment seeks to `startSeconds` and loops back there when playback reaches `endSeconds`.
+- Drag-selecting a draft range loops that range until the comment is saved or another seek/selection clears it.
+- Plain timebar clicks clear the active loop selection; drag preview seeks do not.
+- Looping is client-only. No API or schema changes are required.
