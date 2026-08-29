@@ -25,6 +25,7 @@ flowchart LR
 2. `app/api/blob/upload/route.ts` uploads a file to Blob and creates a `Video` row with a generated `publicId`.
 3. `app/videos/[videoId]/page.tsx` resolves `videoId` as either a stored `publicId` or a raw pathname, then opens the player.
 4. `app/videos/watch/[filename]/FileVideoPageShell.tsx` loads and creates comments through `app/api/blob/comments/route.ts`.
+5. `app/videos/[videoId]/VideoPageShell.tsx` owns client-side loop playback for selected comment or draft ranges; no API/schema changes are needed.
 
 ## Important Files
 
@@ -54,6 +55,7 @@ Current UI behavior uses `Video` and `Comment_blob`. The older `Comment` model i
 - `BLOB_ACCESS=private`: use `/api/blob/stream`.
 - For private playback, `components/VideoPlayer.tsx` fetches the full file and swaps to a blob URL so browser seeking still works.
 - `components/TimeBar.tsx` exposes one shared horizontal scale for ruler ticks and the seek bar so drag-to-select can begin on either surface and end anywhere on the page.
+- Selected comment or draft ranges can loop in `VideoPageShell`; the comments panel toggle disables wrapping without clearing selection.
 
 ## CI
 

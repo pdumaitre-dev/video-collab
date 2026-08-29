@@ -15,6 +15,7 @@ Playback on the video page is controlled by an external play/pause button in `ap
 - `onPlay`
 - `onPause`
 - `onEnded`
+- `onTimeUpdate`
 
 `VideoPageShell` maps them to `isPlaying`.
 
@@ -29,3 +30,13 @@ Playback on the video page is controlled by an external play/pause button in `ap
 - `onPlay` => `isPlaying = true`
 - `onPause` => `isPlaying = false`
 - `onEnded` => `isPlaying = false`
+
+## Selected Range Looping
+
+`VideoPageShell` owns the loop target and toggle state.
+
+- Active loop range priority: draft `selectedRange`, then selected comment range.
+- Selecting a comment seeks to `startSeconds` and starts playback.
+- `onTimeUpdate` resets playback to `startSeconds` when loop mode is enabled and `currentTime >= endSeconds`.
+- The comments panel exposes a `Loop range` toggle; turning it off keeps normal playback while preserving selection state.
+- Saving a comment clears draft range looping. Deleting the selected comment clears comment-based looping.
