@@ -29,6 +29,8 @@ export type PersistCommentFn = (
 
 export type DeleteCommentFn = (commentId: number) => Promise<void>;
 
+type SeekSource = "programmatic" | "timeline-click" | "timeline-drag";
+
 interface VideoPageShellProps {
   video: VideoForClient;
   initialComments: CommentData[];
@@ -65,7 +67,14 @@ export default function VideoPageShell({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
+  const [isLoopRangeEnabled, setIsLoopRangeEnabled] = React.useState(true);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  const selectedComment = React.useMemo(
+    () => comments.find((comment) => comment.id === selectedCommentId) ?? null,
+    [comments, selectedCommentId]
+  );
+  const activeLoopRange = selectedRange ?? selectedComment;
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -83,11 +92,53 @@ export default function VideoPageShell({
     return () => clearInterval(id);
   }, [duration]);
 
-  const handleSeek = (time: number) => {
+  const handleSeek = (
+    time: number,
+    source: SeekSource = "programmatic"
+  ) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
     }
     setCurrentTime(time);
+    if (source === "timeline-click") {
+      setSelectedRange(null);
+      setSelectedCommentId(null);
+    }
+  };
+
+  const startPlayback = React.useCallback(async () => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    try {
+      await videoElement.play();
+    } catch (error) {
+      console.error("Failed to start playback", error);
+    }
+  }, []);
+
+  const handleTimeUpdate = React.useCallback(
+    (time: number) => {
+      const videoElement = videoRef.current;
+      if (
+        isLoopRangeEnabled &&
+        activeLoopRange &&
+        videoElement &&
+        !videoElement.paused &&
+        time >= activeLoopRange.endSeconds - 0.05
+      ) {
+        videoElement.currentTime = activeLoopRange.startSeconds;
+        setCurrentTime(activeLoopRange.startSeconds);
+        return;
+      }
+
+      setCurrentTime(time);
+    },
+    [activeLoopRange, isLoopRangeEnabled]
+  );
+
+  const handleLoopToggle = (enabled: boolean) => {
+    setIsLoopRangeEnabled(enabled);
   };
 
   const handleTogglePlayback = async () => {
@@ -95,11 +146,7 @@ export default function VideoPageShell({
     if (!videoElement) return;
 
     if (videoElement.paused) {
-      try {
-        await videoElement.play();
-      } catch (error) {
-        console.error("Failed to start playback", error);
-      }
+      await startPlayback();
       return;
     }
 
@@ -136,10 +183,19 @@ export default function VideoPageShell({
   };
 
   const handleSelectComment = (commentId: number) => {
-    setSelectedCommentId(commentId);
+    if (selectedCommentId === commentId) {
+      setSelectedCommentId(null);
+      return;
+    }
+
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
+      setSelectedRange(null);
+      setSelectedCommentId(commentId);
       handleSeek(comment.startSeconds);
+      if (isLoopRangeEnabled) {
+        void startPlayback();
+      }
     }
   };
 
@@ -158,7 +214,7 @@ export default function VideoPageShell({
           <VideoPlayer
             src={video.sourceUrl}
             videoRef={videoRef}
-            onTimeUpdate={setCurrentTime}
+            onTimeUpdate={handleTimeUpdate}
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
@@ -206,11 +262,15 @@ export default function VideoPageShell({
               selectedRange={selectedRange}
               onSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
+                setSelectedCommentId(null);
                 setSelectedRange({
                   startSeconds: rangeStartSeconds,
                   endSeconds: rangeEndSeconds
                 });
                 handleSeek(dragEndSeconds);
+                if (isLoopRangeEnabled) {
+                  void startPlayback();
+                }
               }}
             />
           </div>
@@ -221,9 +281,28 @@ export default function VideoPageShell({
         </div>
       </div>
       <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
-        <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
-          Comments
-        </h3>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-heading text-sm font-semibold tracking-tight text-fg-primary">
+              Comments
+            </h3>
+            {isLoopRangeEnabled && activeLoopRange && (
+              <p className="mt-0.5 font-mono text-[11px] text-fg-muted">
+                Looping {formatTime(activeLoopRange.startSeconds)} –{" "}
+                {formatTime(activeLoopRange.endSeconds)}
+              </p>
+            )}
+          </div>
+          <label className="flex items-center gap-2 text-xs text-fg-secondary">
+            <input
+              type="checkbox"
+              checked={isLoopRangeEnabled}
+              onChange={(event) => handleLoopToggle(event.target.checked)}
+              className="h-4 w-4 rounded border-white/[0.12] bg-surface-card accent-accent"
+            />
+            Loop range
+          </label>
+        </div>
         <CommentList
           comments={comments}
           selectedCommentId={selectedCommentId}
@@ -233,4 +312,13 @@ export default function VideoPageShell({
       </div>
     </div>
   );
+}
+
+function formatTime(totalSeconds: number): string {
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return "0:00";
+  const seconds = Math.floor(totalSeconds);
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
+  const padded = remaining.toString().padStart(2, "0");
+  return `${minutes}:${padded}`;
 }
