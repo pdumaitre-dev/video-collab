@@ -67,6 +67,35 @@ export default function VideoPageShell({
   >(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
+  const clampTimeToRange = React.useCallback(
+    (timeSeconds: number, range: { startSeconds: number; endSeconds: number }) => {
+      if (timeSeconds < range.startSeconds) return range.startSeconds;
+      if (timeSeconds >= range.endSeconds) return range.startSeconds;
+      return timeSeconds;
+    },
+    []
+  );
+
+  const handleTimeUpdate = React.useCallback(
+    (timeSeconds: number) => {
+      const videoElement = videoRef.current;
+      if (!selectedRange || !videoElement || videoElement.paused) {
+        setCurrentTime(timeSeconds);
+        return;
+      }
+
+      const { startSeconds, endSeconds } = selectedRange;
+      if (timeSeconds < startSeconds || timeSeconds >= endSeconds) {
+        videoElement.currentTime = startSeconds;
+        setCurrentTime(startSeconds);
+        return;
+      }
+
+      setCurrentTime(timeSeconds);
+    },
+    [selectedRange]
+  );
+
   React.useEffect(() => {
     if (duration > 0) return;
     const el = videoRef.current;
@@ -95,6 +124,16 @@ export default function VideoPageShell({
     if (!videoElement) return;
 
     if (videoElement.paused) {
+      if (selectedRange) {
+        const clamped = clampTimeToRange(
+          videoElement.currentTime,
+          selectedRange
+        );
+        if (clamped !== videoElement.currentTime) {
+          videoElement.currentTime = clamped;
+          setCurrentTime(clamped);
+        }
+      }
       try {
         await videoElement.play();
       } catch (error) {
@@ -105,6 +144,20 @@ export default function VideoPageShell({
 
     videoElement.pause();
   };
+
+  const handlePlaybackEnded = React.useCallback(() => {
+    const videoElement = videoRef.current;
+    if (selectedRange && videoElement) {
+      videoElement.currentTime = selectedRange.startSeconds;
+      setCurrentTime(selectedRange.startSeconds);
+      void videoElement.play().catch((error) => {
+        console.error("Failed to resume range loop", error);
+        setIsPlaying(false);
+      });
+      return;
+    }
+    setIsPlaying(false);
+  }, [selectedRange]);
 
   const handleNewComment = async (text: string) => {
     if (!selectedRange) return;
@@ -158,11 +211,11 @@ export default function VideoPageShell({
           <VideoPlayer
             src={video.sourceUrl}
             videoRef={videoRef}
-            onTimeUpdate={setCurrentTime}
+            onTimeUpdate={handleTimeUpdate}
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={handlePlaybackEnded}
           />
           <div className="flex items-center">
             <button
