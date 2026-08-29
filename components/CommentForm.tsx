@@ -10,11 +10,13 @@ interface SelectedRange {
 interface CommentFormProps {
   selectedRange: SelectedRange | null;
   onSubmit: (text: string) => Promise<void> | void;
+  onClearSelection?: () => void;
 }
 
 export default function CommentForm({
   selectedRange,
-  onSubmit
+  onSubmit,
+  onClearSelection
 }: CommentFormProps) {
   const [text, setText] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
@@ -38,13 +40,22 @@ export default function CommentForm({
       className="space-y-3 rounded-lg border border-white/[0.08] bg-surface-card p-4"
     >
       {selectedRange && (
-        <div className="text-xs">
+        <div className="flex items-center justify-between gap-3 text-xs">
           <span className="font-medium text-fg-primary">
             Add comment on range
             <span className="ml-2 font-mono text-[11px]" style={{ color: "#fde68a" }}>
               {formatTime(selectedRange.startSeconds)} – {formatTime(selectedRange.endSeconds)}
             </span>
           </span>
+          {onClearSelection && (
+            <button
+              type="button"
+              onClick={onClearSelection}
+              className="rounded-md px-2 py-1 text-[11px] font-medium text-fg-secondary transition-colors hover:bg-surface-elevated hover:text-fg-primary"
+            >
+              Clear selection
+            </button>
+          )}
         </div>
       )}
       <textarea

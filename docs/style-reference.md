@@ -105,7 +105,7 @@ surface-page (deepest)
 ### Comment Form
 
 - Card-style container: `bg-surface-card`, `rounded-lg`, `p-4`.
-- When no range selected: no header; placeholder "Select a time range on the timeline to add a comment." When selected: header "Add comment on range" with range inline (e.g. `0:00 – 1:30`).
+- When no range selected: no header; placeholder "Select a time range on the timeline to add a comment." When selected: header "Add comment on range" with range inline (e.g. `0:00 – 1:30`) plus a compact "Clear selection" action.
 - Textarea: `bg-surface-page`, `border-white/[0.08]`, `focus:border-accent`.
 - Submit: `bg-accent`, white text, disabled state with `opacity-50`.
 

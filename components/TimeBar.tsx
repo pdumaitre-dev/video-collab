@@ -103,7 +103,7 @@ export default function TimeBar({
       );
       if (rangeEndSeconds - rangeStartSeconds >= 0.1) {
         onRangeSelected(rangeStartSeconds, rangeEndSeconds, dragEndSeconds);
-        setSelection({ dragStartSeconds: rangeStartSeconds, dragEndSeconds: rangeEndSeconds });
+        setSelection(null);
       } else {
         setSelection(null);
       }
