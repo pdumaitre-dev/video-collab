@@ -4,6 +4,7 @@ import * as React from "react";
 import VideoPageShell, {
   type CommentData,
   type PersistCommentFn,
+  type PersistReplyFn,
   type DeleteCommentFn
 } from "../../[videoId]/VideoPageShell";
 
@@ -30,6 +31,57 @@ function saveCommentsToStorage(sourceUrl: string, comments: CommentData[]) {
   }
 }
 
+function normalizeComments(comments: CommentData[]): CommentData[] {
+  return comments.map((comment) => ({
+    ...comment,
+    parentId: comment.parentId ?? null,
+    replies: normalizeComments(comment.replies ?? [])
+  }));
+}
+
+function findComment(comments: CommentData[], commentId: number): CommentData | null {
+  for (const comment of comments) {
+    if (comment.id === commentId) return comment;
+    const nested = findComment(comment.replies ?? [], commentId);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function addReplyToTree(
+  comments: CommentData[],
+  parentId: number,
+  reply: CommentData
+): CommentData[] {
+  return comments.map((comment) => {
+    if (comment.id === parentId) {
+      return {
+        ...comment,
+        replies: [...(comment.replies ?? []), reply].sort(
+          (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)
+        )
+      };
+    }
+
+    return {
+      ...comment,
+      replies: addReplyToTree(comment.replies ?? [], parentId, reply)
+    };
+  });
+}
+
+function removeCommentFromTree(
+  comments: CommentData[],
+  commentId: number
+): CommentData[] {
+  return comments
+    .filter((comment) => comment.id !== commentId)
+    .map((comment) => ({
+      ...comment,
+      replies: removeCommentFromTree(comment.replies ?? [], commentId)
+    }));
+}
+
 interface FileVideoPageShellProps {
   sourceUrl: string;
   title: string;
@@ -51,16 +103,8 @@ export default function FileVideoPageShell({
         `/api/blob/comments?pathname=${encodeURIComponent(pathname)}`
       )
         .then((res) => (res.ok ? res.json() : []))
-        .then((data: Array<{ id: number; startSeconds: number; endSeconds: number; text: string; createdAt: string }>) => {
-          setInitialComments(
-            data.map((c) => ({
-              id: c.id,
-              startSeconds: c.startSeconds,
-              endSeconds: c.endSeconds,
-              text: c.text,
-              createdAt: c.createdAt
-            }))
-          );
+        .then((data: CommentData[]) => {
+          setInitialComments(normalizeComments(data));
         })
         .catch(() => setInitialComments([]));
     } else {
@@ -89,34 +133,100 @@ export default function FileVideoPageShell({
 
         const created = (await res.json()) as {
           id: number;
+          parentId: number | null;
           startSeconds: number;
           endSeconds: number;
           text: string;
           createdAt: string;
+          replies?: CommentData[];
         };
 
         return {
           id: created.id,
+          parentId: created.parentId,
           startSeconds: created.startSeconds,
           endSeconds: created.endSeconds,
           text: created.text,
-          createdAt: created.createdAt
+          createdAt: created.createdAt,
+          replies: normalizeComments(created.replies ?? [])
         };
       }
 
       const current = loadCommentsFromStorage(sourceUrl);
       const newComment: CommentData = {
         id: Date.now(),
+        parentId: null,
         startSeconds: range.startSeconds,
         endSeconds: range.endSeconds,
         text,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        replies: []
       };
       const updated = [...current, newComment].sort(
         (a, b) => a.startSeconds - b.startSeconds
       );
       saveCommentsToStorage(sourceUrl, updated);
       return newComment;
+    },
+    [pathname, sourceUrl]
+  );
+
+  const persistReply: PersistReplyFn = React.useCallback(
+    async (parentId, text) => {
+      if (pathname) {
+        const res = await fetch("/api/blob/comments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pathname,
+            parentId,
+            text
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? "Failed to create reply");
+        }
+
+        const created = (await res.json()) as {
+          id: number;
+          parentId: number | null;
+          startSeconds: number;
+          endSeconds: number;
+          text: string;
+          createdAt: string;
+          replies?: CommentData[];
+        };
+
+        return {
+          id: created.id,
+          parentId: created.parentId,
+          startSeconds: created.startSeconds,
+          endSeconds: created.endSeconds,
+          text: created.text,
+          createdAt: created.createdAt,
+          replies: normalizeComments(created.replies ?? [])
+        };
+      }
+
+      const current = loadCommentsFromStorage(sourceUrl);
+      const parent = findComment(current, parentId);
+      if (!parent) {
+        throw new Error("Parent comment not found");
+      }
+
+      const reply: CommentData = {
+        id: Date.now(),
+        parentId,
+        startSeconds: parent.startSeconds,
+        endSeconds: parent.endSeconds,
+        text,
+        createdAt: new Date().toISOString(),
+        replies: []
+      };
+      saveCommentsToStorage(sourceUrl, addReplyToTree(current, parentId, reply));
+      return reply;
     },
     [pathname, sourceUrl]
   );
@@ -134,7 +244,7 @@ export default function FileVideoPageShell({
         }
       } else {
         const current = loadCommentsFromStorage(sourceUrl);
-        const updated = current.filter((c) => c.id !== commentId);
+        const updated = removeCommentFromTree(current, commentId);
         saveCommentsToStorage(sourceUrl, updated);
       }
     },
@@ -150,6 +260,7 @@ export default function FileVideoPageShell({
       }}
       initialComments={initialComments}
       persistComment={persistComment}
+      persistReply={persistReply}
       deleteComment={deleteComment}
     />
   );

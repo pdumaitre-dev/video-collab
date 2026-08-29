@@ -38,9 +38,14 @@ model Comment_blob {
   startSeconds Float
   endSeconds   Float
   text         String
+  parentId     Int?
+  parent       Comment_blob?  @relation("CommentBlobThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      Comment_blob[] @relation("CommentBlobThread")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@index([pathname])
+  @@index([parentId])
+  @@index([pathname, parentId])
 }
 
