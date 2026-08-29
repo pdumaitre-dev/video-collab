@@ -49,6 +49,25 @@ export function buildVideoBlobPath(filename: string): string {
   return `videos/${sanitizeFilename(filename)}`;
 }
 
+const VIDEO_BLOB_PREFIX = "videos/";
+
+/** Reject path traversal and non-video blob paths before Blob API calls. */
+export function assertAllowedVideoBlobPathname(pathname: string): string | null {
+  const trimmed = pathname.trim();
+  if (!trimmed) return "pathname cannot be empty";
+  if (trimmed.includes("..") || trimmed.includes("\\")) {
+    return "Invalid pathname";
+  }
+  if (!trimmed.startsWith(VIDEO_BLOB_PREFIX)) {
+    return "pathname must start with videos/";
+  }
+  const extension = getExtension(trimmed);
+  if (!ALLOWED_EXTENSIONS.includes(extension as (typeof ALLOWED_EXTENSIONS)[number])) {
+    return "pathname must reference a supported video file";
+  }
+  return null;
+}
+
 export function generatePublicId(length = 11): string {
   const bytes = crypto.getRandomValues(new Uint8Array(length));
   let value = "";
