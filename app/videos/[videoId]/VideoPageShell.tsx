@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import VideoPlayer from "@/components/VideoPlayer";
-import TimeBar from "@/components/TimeBar";
+import TimeBar, { type TimeBarSeekSource } from "@/components/TimeBar";
 import CommentList from "@/components/CommentList";
 import CommentForm from "@/components/CommentForm";
 
@@ -28,6 +28,13 @@ export type PersistCommentFn = (
 ) => Promise<CommentData>;
 
 export type DeleteCommentFn = (commentId: number) => Promise<void>;
+
+type PlaybackRange = {
+  startSeconds: number;
+  endSeconds: number;
+};
+
+const LOOP_END_EPSILON_SECONDS = 0.05;
 
 interface VideoPageShellProps {
   video: VideoForClient;
@@ -65,7 +72,20 @@ export default function VideoPageShell({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
+  const [loopRangeEnabled, setLoopRangeEnabled] = React.useState(true);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  const selectedCommentRange = React.useMemo<PlaybackRange | null>(() => {
+    const selectedComment = comments.find((c) => c.id === selectedCommentId);
+    return selectedComment
+      ? {
+          startSeconds: selectedComment.startSeconds,
+          endSeconds: selectedComment.endSeconds
+        }
+      : null;
+  }, [comments, selectedCommentId]);
+
+  const activeLoopRange = selectedRange ?? selectedCommentRange;
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -83,10 +103,43 @@ export default function VideoPageShell({
     return () => clearInterval(id);
   }, [duration]);
 
-  const handleSeek = (time: number) => {
+  const stopLooping = () => {
+    setLoopRangeEnabled(false);
+  };
+
+  const dismissActiveRange = () => {
+    setSelectedRange(null);
+    setSelectedCommentId(null);
+    stopLooping();
+  };
+
+  const handleSeek = (
+    time: number,
+    source: TimeBarSeekSource | "programmatic" = "programmatic"
+  ) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
     }
+    setCurrentTime(time);
+    if (source === "click") {
+      dismissActiveRange();
+    }
+  };
+
+  const handleTimeUpdate = (time: number) => {
+    const videoElement = videoRef.current;
+    if (
+      videoElement &&
+      loopRangeEnabled &&
+      activeLoopRange &&
+      activeLoopRange.endSeconds - activeLoopRange.startSeconds > LOOP_END_EPSILON_SECONDS &&
+      time >= activeLoopRange.endSeconds - LOOP_END_EPSILON_SECONDS
+    ) {
+      videoElement.currentTime = activeLoopRange.startSeconds;
+      setCurrentTime(activeLoopRange.startSeconds);
+      return;
+    }
+
     setCurrentTime(time);
   };
 
@@ -103,6 +156,7 @@ export default function VideoPageShell({
       return;
     }
 
+    stopLooping();
     videoElement.pause();
   };
 
@@ -125,6 +179,7 @@ export default function VideoPageShell({
       [...prev, created].sort((a, b) => a.startSeconds - b.startSeconds)
     );
     setSelectedRange(null);
+    stopLooping();
   };
 
   const handleDeleteComment = async (commentId: number) => {
@@ -132,13 +187,21 @@ export default function VideoPageShell({
     setComments((prev) => prev.filter((c) => c.id !== commentId));
     if (selectedCommentId === commentId) {
       setSelectedCommentId(null);
+      stopLooping();
     }
   };
 
   const handleSelectComment = (commentId: number) => {
-    setSelectedCommentId(commentId);
+    if (selectedCommentId === commentId) {
+      dismissActiveRange();
+      return;
+    }
+
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
+      setSelectedRange(null);
+      setSelectedCommentId(commentId);
+      setLoopRangeEnabled(true);
       handleSeek(comment.startSeconds);
     }
   };
@@ -158,7 +221,7 @@ export default function VideoPageShell({
           <VideoPlayer
             src={video.sourceUrl}
             videoRef={videoRef}
-            onTimeUpdate={setCurrentTime}
+            onTimeUpdate={handleTimeUpdate}
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
@@ -203,13 +266,15 @@ export default function VideoPageShell({
               durationSeconds={duration}
               currentTime={currentTime}
               comments={comments}
-              selectedRange={selectedRange}
+              selectedRange={activeLoopRange}
               onSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
+                setSelectedCommentId(null);
                 setSelectedRange({
                   startSeconds: rangeStartSeconds,
                   endSeconds: rangeEndSeconds
                 });
+                setLoopRangeEnabled(true);
                 handleSeek(dragEndSeconds);
               }}
             />
@@ -221,9 +286,32 @@ export default function VideoPageShell({
         </div>
       </div>
       <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
-        <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
-          Comments
-        </h3>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-heading text-sm font-semibold tracking-tight text-fg-primary">
+              Comments
+            </h3>
+            {activeLoopRange && (
+              <p className="mt-1 font-mono text-[11px] text-fg-muted">
+                Repeating {formatTime(activeLoopRange.startSeconds)} –{" "}
+                {formatTime(activeLoopRange.endSeconds)}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            aria-pressed={loopRangeEnabled && Boolean(activeLoopRange)}
+            disabled={!activeLoopRange}
+            onClick={() => setLoopRangeEnabled((enabled) => !enabled)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              loopRangeEnabled && activeLoopRange
+                ? "border-accent bg-accent-muted text-fg-primary"
+                : "border-white/[0.08] bg-surface-card text-fg-secondary hover:border-white/[0.12] hover:bg-surface-elevated"
+            }`}
+          >
+            Loop range
+          </button>
+        </div>
         <CommentList
           comments={comments}
           selectedCommentId={selectedCommentId}
@@ -233,4 +321,13 @@ export default function VideoPageShell({
       </div>
     </div>
   );
+}
+
+function formatTime(totalSeconds: number): string {
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return "0:00";
+  const seconds = Math.floor(totalSeconds);
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
+  const padded = remaining.toString().padStart(2, "0");
+  return `${minutes}:${padded}`;
 }
