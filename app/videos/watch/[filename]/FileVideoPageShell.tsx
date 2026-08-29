@@ -4,8 +4,11 @@ import * as React from "react";
 import VideoPageShell, {
   type CommentData,
   type PersistCommentFn,
-  type DeleteCommentFn
+  type DeleteCommentFn,
+  type PersistChapterFn,
+  type DeleteChapterFn
 } from "../../[videoId]/VideoPageShell";
+import type { ChapterData } from "@/components/ChapterList";
 
 const STORAGE_PREFIX = "video-comments:";
 
@@ -44,6 +47,8 @@ export default function FileVideoPageShell({
 }: FileVideoPageShellProps) {
   const [initialComments, setInitialComments] =
     React.useState<CommentData[]>(() => []);
+  const [initialChapters, setInitialChapters] =
+    React.useState<ChapterData[]>(() => []);
 
   React.useEffect(() => {
     if (pathname) {
@@ -63,8 +68,25 @@ export default function FileVideoPageShell({
           );
         })
         .catch(() => setInitialComments([]));
+
+      fetch(
+        `/api/blob/chapters?pathname=${encodeURIComponent(pathname)}`
+      )
+        .then((res) => (res.ok ? res.json() : []))
+        .then((data: Array<{ id: number; label: string; seconds: number; color?: string | null }>) => {
+          setInitialChapters(
+            data.map((c) => ({
+              id: c.id,
+              label: c.label,
+              seconds: c.seconds,
+              color: c.color
+            }))
+          );
+        })
+        .catch(() => setInitialChapters([]));
     } else {
       setInitialComments(loadCommentsFromStorage(sourceUrl));
+      setInitialChapters([]);
     }
   }, [pathname, sourceUrl]);
 
@@ -141,6 +163,60 @@ export default function FileVideoPageShell({
     [pathname, sourceUrl]
   );
 
+  const persistChapter: PersistChapterFn = React.useCallback(
+    async (label, seconds) => {
+      if (!pathname) {
+        throw new Error("Chapters are not available for this video");
+      }
+
+      const res = await fetch("/api/blob/chapters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pathname,
+          label,
+          seconds,
+          color: "#3b82f6"
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Failed to create chapter");
+      }
+
+      const created = (await res.json()) as {
+        id: number;
+        label: string;
+        seconds: number;
+        color?: string | null;
+      };
+
+      return {
+        id: created.id,
+        label: created.label,
+        seconds: created.seconds,
+        color: created.color
+      };
+    },
+    [pathname]
+  );
+
+  const deleteChapter: DeleteChapterFn = React.useCallback(
+    async (chapterId: number) => {
+      if (!pathname) return;
+
+      const res = await fetch(`/api/blob/chapters?id=${chapterId}`, {
+        method: "DELETE"
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Failed to delete chapter");
+      }
+    },
+    [pathname]
+  );
+
   return (
     <VideoPageShell
       video={{
@@ -149,8 +225,12 @@ export default function FileVideoPageShell({
         durationSeconds: null
       }}
       initialComments={initialComments}
+      initialChapters={initialChapters}
       persistComment={persistComment}
       deleteComment={deleteComment}
+      persistChapter={pathname ? persistChapter : undefined}
+      deleteChapter={pathname ? deleteChapter : undefined}
+      chaptersEnabled={Boolean(pathname)}
     />
   );
 }

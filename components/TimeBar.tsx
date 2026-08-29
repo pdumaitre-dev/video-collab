@@ -8,6 +8,13 @@ type CommentRange = {
   endSeconds: number;
 };
 
+type ChapterMarker = {
+  id: number;
+  label: string;
+  seconds: number;
+  color?: string | null;
+};
+
 interface SelectedRange {
   startSeconds: number;
   endSeconds: number;
@@ -17,9 +24,12 @@ interface TimeBarProps {
   durationSeconds: number;
   currentTime: number;
   comments?: CommentRange[];
+  chapters?: ChapterMarker[];
+  selectedChapterId?: number | null;
   /** Persisted selection from parent; shown until comment is submitted */
   selectedRange?: SelectedRange | null;
   onSeek: (timeSeconds: number) => void;
+  onChapterSelect?: (chapterId: number) => void;
   /** Called with normalized range (start <= end) and the position where the drag ended */
   onRangeSelected: (
     rangeStartSeconds: number,
@@ -41,13 +51,18 @@ function formatTime(totalSeconds: number): string {
 const YELLOW_RANGE_BORDER = "#fde68a";
 /** Border color for saved comment ranges (fill transparent). */
 const GREEN_RANGE_BORDER = "rgb(16, 185, 129)";
+/** Default chapter marker color (accent). */
+const DEFAULT_CHAPTER_COLOR = "#3b82f6";
 
 export default function TimeBar({
   durationSeconds,
   currentTime,
   comments = [],
+  chapters = [],
+  selectedChapterId = null,
   selectedRange = null,
   onSeek,
+  onChapterSelect,
   onRangeSelected
 }: TimeBarProps) {
   const timelineRef = React.useRef<HTMLDivElement | null>(null);
@@ -71,6 +86,15 @@ export default function TimeBar({
     if (durationSeconds <= 0) return;
     const seconds = toSeconds(e.clientX);
     onSeek(seconds);
+  };
+
+  const handleChapterClick = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    chapter: ChapterMarker
+  ) => {
+    e.stopPropagation();
+    onChapterSelect?.(chapter.id);
+    onSeek(chapter.seconds);
   };
 
   const handleMouseDownSelection = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -212,6 +236,34 @@ export default function TimeBar({
               />
             );
           })}
+          {chapters.map((chapter) => {
+            const left = (chapter.seconds / durationSeconds) * 100;
+            const markerColor = chapter.color ?? DEFAULT_CHAPTER_COLOR;
+            const isSelected = chapter.id === selectedChapterId;
+            return (
+              <button
+                key={`chapter-ruler-${chapter.id}`}
+                type="button"
+                title={chapter.label}
+                aria-label={`Chapter: ${chapter.label} at ${formatTime(chapter.seconds)}`}
+                onClick={(e) => handleChapterClick(e, chapter)}
+                style={{
+                  position: "absolute",
+                  left: `${left}%`,
+                  top: 2,
+                  width: 2,
+                  height: 22,
+                  backgroundColor: markerColor,
+                  border: isSelected ? "1px solid #ffffff" : "none",
+                  borderRadius: 1,
+                  transform: "translateX(-1px)",
+                  zIndex: 4,
+                  padding: 0,
+                  cursor: "pointer"
+                }}
+              />
+            );
+          })}
           <span
             style={{
               position: "absolute",
@@ -288,6 +340,34 @@ export default function TimeBar({
                   zIndex: 5
                 }}
                 aria-hidden
+              />
+            );
+          })}
+          {chapters.map((chapter) => {
+            const left = (chapter.seconds / durationSeconds) * 100;
+            const markerColor = chapter.color ?? DEFAULT_CHAPTER_COLOR;
+            const isSelected = chapter.id === selectedChapterId;
+            return (
+              <button
+                key={`chapter-pill-${chapter.id}`}
+                type="button"
+                title={chapter.label}
+                aria-label={`Chapter: ${chapter.label} at ${formatTime(chapter.seconds)}`}
+                onClick={(e) => handleChapterClick(e, chapter)}
+                style={{
+                  position: "absolute",
+                  top: 4,
+                  bottom: 4,
+                  left: `${left}%`,
+                  width: 3,
+                  backgroundColor: markerColor,
+                  border: isSelected ? "1px solid #ffffff" : "none",
+                  borderRadius: 2,
+                  transform: "translateX(-1.5px)",
+                  zIndex: 4,
+                  padding: 0,
+                  cursor: "pointer"
+                }}
               />
             );
           })}
