@@ -101,6 +101,7 @@ surface-page (deepest)
 
 - Comments column uses `bg-surface-panel`, `rounded-lg`, `border-white/[0.08]`.
 - Optional subtle shadow: `shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]` for depth.
+- Header row: "Comments" title (`h3`, `font-heading`) and a "Loop range" checkbox toggle, `justify-between`. Checkbox label uses `text-fg-secondary`, `text-xs`.
 
 ### Comment Form
 

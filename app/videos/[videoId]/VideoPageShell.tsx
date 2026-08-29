@@ -65,7 +65,24 @@ export default function VideoPageShell({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
+  const [loopEnabled, setLoopEnabled] = React.useState(true);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  /** Range to loop while active: the in-progress draft selection takes
+   * precedence, otherwise the currently selected comment's range. */
+  const activeLoopRange = React.useMemo(() => {
+    if (selectedRange) return selectedRange;
+    if (selectedCommentId != null) {
+      const comment = comments.find((c) => c.id === selectedCommentId);
+      if (comment) {
+        return {
+          startSeconds: comment.startSeconds,
+          endSeconds: comment.endSeconds
+        };
+      }
+    }
+    return null;
+  }, [selectedRange, selectedCommentId, comments]);
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -88,6 +105,22 @@ export default function VideoPageShell({
       videoRef.current.currentTime = time;
     }
     setCurrentTime(time);
+  };
+
+  /** Snaps playback back to the active range's start once it plays past the end. */
+  const handleTimeUpdate = (time: number) => {
+    setCurrentTime(time);
+    if (
+      loopEnabled &&
+      activeLoopRange &&
+      activeLoopRange.endSeconds > activeLoopRange.startSeconds &&
+      time >= activeLoopRange.endSeconds
+    ) {
+      if (videoRef.current) {
+        videoRef.current.currentTime = activeLoopRange.startSeconds;
+      }
+      setCurrentTime(activeLoopRange.startSeconds);
+    }
   };
 
   const handleTogglePlayback = async () => {
@@ -136,7 +169,13 @@ export default function VideoPageShell({
   };
 
   const handleSelectComment = (commentId: number) => {
+    if (selectedCommentId === commentId) {
+      // Clicking the already-selected comment deselects it, stopping the loop.
+      setSelectedCommentId(null);
+      return;
+    }
     setSelectedCommentId(commentId);
+    setSelectedRange(null);
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
@@ -158,7 +197,7 @@ export default function VideoPageShell({
           <VideoPlayer
             src={video.sourceUrl}
             videoRef={videoRef}
-            onTimeUpdate={setCurrentTime}
+            onTimeUpdate={handleTimeUpdate}
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
@@ -206,6 +245,7 @@ export default function VideoPageShell({
               selectedRange={selectedRange}
               onSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
+                setSelectedCommentId(null);
                 setSelectedRange({
                   startSeconds: rangeStartSeconds,
                   endSeconds: rangeEndSeconds
@@ -221,9 +261,20 @@ export default function VideoPageShell({
         </div>
       </div>
       <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
-        <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
-          Comments
-        </h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-heading text-sm font-semibold tracking-tight text-fg-primary">
+            Comments
+          </h3>
+          <label className="flex select-none items-center gap-1.5 text-xs text-fg-secondary">
+            <input
+              type="checkbox"
+              checked={loopEnabled}
+              onChange={(e) => setLoopEnabled(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-white/[0.12] bg-surface-page accent-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+            />
+            Loop range
+          </label>
+        </div>
         <CommentList
           comments={comments}
           selectedCommentId={selectedCommentId}
