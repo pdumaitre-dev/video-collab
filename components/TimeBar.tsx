@@ -52,6 +52,7 @@ export default function TimeBar({
 }: TimeBarProps) {
   const timelineRef = React.useRef<HTMLDivElement | null>(null);
   const dragStartSecondsRef = React.useRef(0);
+  const suppressClickSeekRef = React.useRef(false);
   const [selection, setSelection] = React.useState<{
     dragStartSeconds: number;
     dragEndSeconds: number;
@@ -69,6 +70,10 @@ export default function TimeBar({
 
   const handleClickSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (durationSeconds <= 0) return;
+    if (suppressClickSeekRef.current) {
+      suppressClickSeekRef.current = false;
+      return;
+    }
     const seconds = toSeconds(e.clientX);
     onSeek(seconds);
   };
@@ -76,6 +81,7 @@ export default function TimeBar({
   const handleMouseDownSelection = (e: React.MouseEvent<HTMLDivElement>) => {
     if (durationSeconds <= 0) return;
     e.preventDefault();
+    suppressClickSeekRef.current = false;
     const dragStartSeconds = toSeconds(e.clientX);
     dragStartSecondsRef.current = dragStartSeconds;
     setSelection({ dragStartSeconds, dragEndSeconds: dragStartSeconds });
@@ -102,8 +108,9 @@ export default function TimeBar({
         Math.max(dragStartSecondsRef.current, dragEndSeconds)
       );
       if (rangeEndSeconds - rangeStartSeconds >= 0.1) {
+        suppressClickSeekRef.current = true;
         onRangeSelected(rangeStartSeconds, rangeEndSeconds, dragEndSeconds);
-        setSelection({ dragStartSeconds: rangeStartSeconds, dragEndSeconds: rangeEndSeconds });
+        setSelection(null);
       } else {
         setSelection(null);
       }
