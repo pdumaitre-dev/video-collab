@@ -28,4 +28,14 @@ Playback on the video page is controlled by an external play/pause button in `ap
 
 - `onPlay` => `isPlaying = true`
 - `onPause` => `isPlaying = false`
-- `onEnded` => `isPlaying = false`
+- `onEnded` => `isPlaying = false` (unless a comment range is selected; see below)
+
+## Range preview loop
+
+While a yellow selection range is active on `TimeBar` (until submit or a new range replaces it):
+
+- If playback is running, `VideoPageShell` rewinds to `startSeconds` when time reaches `endSeconds` (and if play drifts before `startSeconds`).
+- If the video was paused when the range was selected, it stays paused; play/pause still toggles only playback, not the selection.
+- Resuming play with the play button snaps to `startSeconds` when the playhead is outside the range, then loops.
+- Pausing during the loop keeps the selection; play resumes the loop from the paused position (still within the range).
+- Submitting a comment clears `selectedRange` and stops looping.
