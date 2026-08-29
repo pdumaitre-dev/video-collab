@@ -6,6 +6,7 @@ Current docs:
 - Root `AGENTS.md`: Cursor Cloud bootstrap, sandbox network, smoke-test data prerequisites.
 - `storage/vercel-blob.md`: Blob setup, upload flow, playback, and pathname rules.
 - `video-player-page/external-playback-controls.md`: play/pause control behavior.
+- Named timeline chapters are documented in `architecture.md` and `storage/vercel-blob.md`.
 - `style-reference.md`: UI tokens and layout rules.
 - `design-system-figma.md`: capturing the design system page into Figma.
 

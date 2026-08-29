@@ -8,6 +8,13 @@ type CommentRange = {
   endSeconds: number;
 };
 
+type ChapterMarker = {
+  id: number;
+  label: string;
+  seconds: number;
+  color?: string | null;
+};
+
 interface SelectedRange {
   startSeconds: number;
   endSeconds: number;
@@ -17,9 +24,11 @@ interface TimeBarProps {
   durationSeconds: number;
   currentTime: number;
   comments?: CommentRange[];
+  chapters?: ChapterMarker[];
   /** Persisted selection from parent; shown until comment is submitted */
   selectedRange?: SelectedRange | null;
   onSeek: (timeSeconds: number) => void;
+  onChapterSelect?: (chapterId: number) => void;
   /** Called with normalized range (start <= end) and the position where the drag ended */
   onRangeSelected: (
     rangeStartSeconds: number,
@@ -41,13 +50,16 @@ function formatTime(totalSeconds: number): string {
 const YELLOW_RANGE_BORDER = "#fde68a";
 /** Border color for saved comment ranges (fill transparent). */
 const GREEN_RANGE_BORDER = "rgb(16, 185, 129)";
+const DEFAULT_CHAPTER_COLOR = "#3b82f6";
 
 export default function TimeBar({
   durationSeconds,
   currentTime,
   comments = [],
+  chapters = [],
   selectedRange = null,
   onSeek,
+  onChapterSelect,
   onRangeSelected
 }: TimeBarProps) {
   const timelineRef = React.useRef<HTMLDivElement | null>(null);
@@ -113,6 +125,16 @@ export default function TimeBar({
     window.addEventListener("mouseup", onUp);
   };
 
+  const handleChapterClick = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    chapter: ChapterMarker
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onSeek(chapter.seconds);
+    onChapterSelect?.(chapter.id);
+  };
+
   const tickCount = 24;
   const playedRatio =
     durationSeconds > 0 ? Math.min(currentTime / durationSeconds, 1) : 0;
@@ -145,6 +167,12 @@ export default function TimeBar({
           width: `${((displayRange.endSeconds - displayRange.startSeconds) / durationSeconds) * 100}%`
         }
       : null;
+  const visibleChapters = chapters.filter(
+    (chapter) =>
+      Number.isFinite(chapter.seconds) &&
+      chapter.seconds >= 0 &&
+      chapter.seconds <= durationSeconds
+  );
 
   if (durationSeconds <= 0) {
     return (
@@ -207,6 +235,29 @@ export default function TimeBar({
                   backgroundColor: isMajor ? "#e2e8f0" : "#94a3b8",
                   opacity: isMajor ? 0.9 : 0.65,
                   transform: "translateX(-0.5px)"
+                }}
+                aria-hidden
+              />
+            );
+          })}
+          {visibleChapters.map((chapter) => {
+            const left = (chapter.seconds / durationSeconds) * 100;
+            const markerColor = chapter.color ?? DEFAULT_CHAPTER_COLOR;
+            return (
+              <div
+                key={`chapter-ruler-${chapter.id}`}
+                title={`${chapter.label} (${formatTime(chapter.seconds)})`}
+                style={{
+                  position: "absolute",
+                  left: `${left}%`,
+                  top: 2,
+                  bottom: 2,
+                  width: 2,
+                  backgroundColor: markerColor,
+                  boxShadow: `0 0 0 1px rgba(15, 23, 42, 0.8), 0 0 8px ${markerColor}`,
+                  transform: "translateX(-1px)",
+                  zIndex: 9,
+                  pointerEvents: "none"
                 }}
                 aria-hidden
               />
@@ -308,6 +359,53 @@ export default function TimeBar({
               aria-hidden
             />
           )}
+          {visibleChapters.map((chapter) => {
+            const left = (chapter.seconds / durationSeconds) * 100;
+            const markerColor = chapter.color ?? DEFAULT_CHAPTER_COLOR;
+            return (
+              <button
+                key={`chapter-marker-${chapter.id}`}
+                type="button"
+                title={`${chapter.label} (${formatTime(chapter.seconds)})`}
+                aria-label={`Seek to chapter ${chapter.label} at ${formatTime(
+                  chapter.seconds
+                )}`}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => handleChapterClick(e, chapter)}
+                style={{
+                  position: "absolute",
+                  top: 1,
+                  bottom: 1,
+                  left: `${left}%`,
+                  width: 12,
+                  border: 0,
+                  padding: 0,
+                  background: "transparent",
+                  transform: "translateX(-50%)",
+                  cursor: "pointer",
+                  zIndex: 10
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    bottom: 0,
+                    left: "50%",
+                    width: 3,
+                    borderRadius: 9999,
+                    backgroundColor: markerColor,
+                    boxShadow: `0 0 0 1px rgba(15, 23, 42, 0.8), 0 0 8px ${markerColor}`,
+                    transform: "translateX(-50%)"
+                  }}
+                  aria-hidden
+                />
+              </button>
+            );
+          })}
         </div>
         <div
           style={{
