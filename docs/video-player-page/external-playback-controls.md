@@ -29,3 +29,13 @@ Playback on the video page is controlled by an external play/pause button in `ap
 - `onPlay` => `isPlaying = true`
 - `onPause` => `isPlaying = false`
 - `onEnded` => `isPlaying = false`
+
+## Loop Selected Range
+
+`VideoPageShell` loops playback within the currently active range (comment click, or a range selected while drafting a comment).
+
+- **Active range** (`activeLoopRange`, memoized): an in-progress `selectedRange` takes priority; otherwise the `selectedComment`'s range. Selecting a range and selecting a comment are mutually exclusive — each handler clears the other.
+- **Loop mechanism**: `handleTimeUpdate` (wired to `VideoPlayer` `onTimeUpdate`) seeks back to `startSeconds` once `currentTime >= endSeconds`. No API or schema changes.
+- **Comment click**: seeks to `startSeconds` and starts playback so the loop is immediately visible.
+- **Toggle**: a "Loop range" switch in the comments panel header controls `loopEnabled` (default on). When off, `handleTimeUpdate` only tracks time.
+- **Stops when**: the range/comment is dismissed (new range selected, comment deselected, or comment submitted → `selectedRange` cleared) or the toggle is turned off. Pausing halts the loop naturally.
