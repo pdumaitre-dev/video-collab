@@ -1,6 +1,6 @@
 # Video Collab
 
-Next.js 14 app for annotating videos with time-range comments. Videos live in Vercel Blob. Metadata and comments live in Neon PostgreSQL via Prisma.
+Next.js 14 app for annotating videos with time-range comments and named timeline chapters. Videos live in Vercel Blob. Metadata, comments, and chapters live in Neon PostgreSQL via Prisma.
 
 ## Stack
 
@@ -60,6 +60,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - `/videos/upload` uploads a video into Blob and creates a `Video` record with a `publicId`.
 - `/videos/[videoId]` resolves either a stored `publicId` or a raw pathname and opens the annotation UI.
 - Comments for Blob videos are stored in the `Comment_blob` table, keyed by Blob pathname.
+- Named chapters for Blob videos are stored in the `Chapter_blob` table, keyed by Blob pathname.
 
 ## Notes
 
@@ -73,4 +74,5 @@ Open [http://localhost:3000](http://localhost:3000).
 - `docs/architecture.md` — structure, data model, Neon/Prisma connectivity
 - `docs/storage/vercel-blob.md` — Blob setup and playback
 - `docs/video-player-page/external-playback-controls.md`
+- `docs/video-player-page/named-timeline-chapters.md`
 - `AGENTS.md` — agent/cloud setup and gotchas
