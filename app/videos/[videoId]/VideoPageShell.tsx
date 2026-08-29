@@ -38,6 +38,24 @@ interface VideoPageShellProps {
   deleteComment: DeleteCommentFn;
 }
 
+const LOOP_END_EPSILON = 0.05;
+
+type LoopRange = { startSeconds: number; endSeconds: number };
+
+function formatTime(totalSeconds: number): string {
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return "0:00";
+  const seconds = Math.floor(totalSeconds);
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
+  const padded = remaining.toString().padStart(2, "0");
+  return `${minutes}:${padded}`;
+}
+
+function loopRangeKey(range: LoopRange | null): string {
+  if (!range) return "";
+  return `${range.startSeconds}:${range.endSeconds}`;
+}
+
 export default function VideoPageShell({
   video,
   initialComments,
@@ -65,7 +83,47 @@ export default function VideoPageShell({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
+  const [isLoopEnabled, setIsLoopEnabled] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const loopTargetKeyRef = React.useRef("");
+
+  const loopRange = React.useMemo((): LoopRange | null => {
+    if (selectedRange) {
+      return {
+        startSeconds: selectedRange.startSeconds,
+        endSeconds: selectedRange.endSeconds
+      };
+    }
+    if (selectedCommentId != null) {
+      const comment = comments.find((c) => c.id === selectedCommentId);
+      if (comment) {
+        return {
+          startSeconds: comment.startSeconds,
+          endSeconds: comment.endSeconds
+        };
+      }
+    }
+    return null;
+  }, [selectedRange, selectedCommentId, comments]);
+
+  React.useEffect(() => {
+    const key = loopRangeKey(loopRange);
+    if (!loopRange || key === loopTargetKeyRef.current) return;
+    loopTargetKeyRef.current = key;
+    setIsLoopEnabled(true);
+    const el = videoRef.current;
+    if (el) {
+      el.currentTime = loopRange.startSeconds;
+    }
+    setCurrentTime(loopRange.startSeconds);
+    el?.play().catch(() => {});
+  }, [loopRange]);
+
+  React.useEffect(() => {
+    if (!loopRange) {
+      loopTargetKeyRef.current = "";
+    }
+  }, [loopRange]);
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -83,11 +141,36 @@ export default function VideoPageShell({
     return () => clearInterval(id);
   }, [duration]);
 
-  const handleSeek = (time: number) => {
+  const handleSeek = (
+    time: number,
+    source: "click" | "programmatic" = "programmatic"
+  ) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
     }
     setCurrentTime(time);
+
+    if (source === "click") {
+      setSelectedCommentId(null);
+      if (
+        loopRange &&
+        (time < loopRange.startSeconds - LOOP_END_EPSILON ||
+          time > loopRange.endSeconds + LOOP_END_EPSILON)
+      ) {
+        setIsLoopEnabled(false);
+      }
+    }
+  };
+
+  const handleTimeUpdate = (time: number) => {
+    setCurrentTime(time);
+    if (!isLoopEnabled || !loopRange) return;
+    const el = videoRef.current;
+    if (!el || el.paused) return;
+    if (time >= loopRange.endSeconds - LOOP_END_EPSILON) {
+      el.currentTime = loopRange.startSeconds;
+      setCurrentTime(loopRange.startSeconds);
+    }
   };
 
   const handleTogglePlayback = async () => {
@@ -104,6 +187,7 @@ export default function VideoPageShell({
     }
 
     videoElement.pause();
+    setIsLoopEnabled(false);
   };
 
   const handleNewComment = async (text: string) => {
@@ -136,12 +220,20 @@ export default function VideoPageShell({
   };
 
   const handleSelectComment = (commentId: number) => {
+    if (selectedCommentId === commentId) {
+      setSelectedCommentId(null);
+      setIsLoopEnabled(false);
+      return;
+    }
+    setSelectedRange(null);
     setSelectedCommentId(commentId);
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
     }
   };
+
+  const loopActive = Boolean(loopRange && isLoopEnabled);
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)]">
@@ -158,7 +250,7 @@ export default function VideoPageShell({
           <VideoPlayer
             src={video.sourceUrl}
             videoRef={videoRef}
-            onTimeUpdate={setCurrentTime}
+            onTimeUpdate={handleTimeUpdate}
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
@@ -206,6 +298,7 @@ export default function VideoPageShell({
               selectedRange={selectedRange}
               onSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
+                setSelectedCommentId(null);
                 setSelectedRange({
                   startSeconds: rangeStartSeconds,
                   endSeconds: rangeEndSeconds
@@ -221,9 +314,31 @@ export default function VideoPageShell({
         </div>
       </div>
       <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
-        <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
-          Comments
-        </h3>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-heading text-sm font-semibold tracking-tight text-fg-primary">
+            Comments
+          </h3>
+          {loopRange && (
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-fg-secondary">
+                <input
+                  type="checkbox"
+                  checked={isLoopEnabled}
+                  onChange={(e) => setIsLoopEnabled(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-white/20 bg-surface-card accent-accent"
+                  aria-label="Loop selected range"
+                />
+                Loop range
+              </label>
+              {loopActive && (
+                <span className="font-mono text-[11px] text-fg-muted">
+                  Repeating {formatTime(loopRange.startSeconds)} –{" "}
+                  {formatTime(loopRange.endSeconds)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
         <CommentList
           comments={comments}
           selectedCommentId={selectedCommentId}

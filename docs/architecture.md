@@ -31,7 +31,7 @@ flowchart LR
 - `app/videos/[videoId]/page.tsx`: server entry for the annotation page.
 - `app/videos/[videoId]/VideoPageShell.tsx`: client shell for playback, range selection, and comments.
 - `components/VideoPlayer.tsx`: wraps `<video>` and handles the private-blob preload workaround.
-- `components/TimeBar.tsx`: combined timeline UI (ruler + time bar), seek cursor, and drag range selection.
+- `components/TimeBar.tsx`: combined timeline UI (ruler + time bar), seek cursor, drag range selection, and click seek source for loop stop rules.
 - `app/api/blob/upload/route.ts`: Blob upload plus `Video` record creation.
 - `app/api/blob/comments/route.ts`: pathname-keyed comment read/write/delete API.
 - `app/api/blob/stream/route.ts`: playback proxy for private Blob mode.
@@ -53,6 +53,7 @@ Current UI behavior uses `Video` and `Comment_blob`. The older `Comment` model i
 - `BLOB_ACCESS=public`: use direct Blob URLs.
 - `BLOB_ACCESS=private`: use `/api/blob/stream`.
 - For private playback, `components/VideoPlayer.tsx` fetches the full file and swaps to a blob URL so browser seeking still works.
+- Selected comment or draft range can loop between `startSeconds` and `endSeconds` in `VideoPageShell` (see `docs/video-player-page/loop-selected-range.md`).
 - `components/TimeBar.tsx` exposes one shared horizontal scale for ruler ticks and the seek bar so drag-to-select can begin on either surface and end anywhere on the page.
 
 ## CI
