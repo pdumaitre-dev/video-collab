@@ -2,6 +2,44 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { listVideoBlobs } from "@/lib/blob";
 
+export interface CommentResponse {
+  id: number;
+  pathname: string;
+  startSeconds: number;
+  endSeconds: number;
+  text: string;
+  parentId: number | null;
+  createdAt: string;
+  updatedAt: string;
+  replies: CommentResponse[];
+}
+
+function toCommentResponse(
+  comment: {
+    id: number;
+    pathname: string;
+    startSeconds: number;
+    endSeconds: number;
+    text: string;
+    parentId: number | null;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+  replies: CommentResponse[] = []
+): CommentResponse {
+  return {
+    id: comment.id,
+    pathname: comment.pathname,
+    startSeconds: comment.startSeconds,
+    endSeconds: comment.endSeconds,
+    text: comment.text,
+    parentId: comment.parentId,
+    createdAt: comment.createdAt.toISOString(),
+    updatedAt: comment.updatedAt.toISOString(),
+    replies
+  };
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const pathname = searchParams.get("pathname");
@@ -21,17 +59,23 @@ export async function GET(request: Request) {
       orderBy: [{ startSeconds: "asc" }, { createdAt: "asc" }]
     });
 
-    return NextResponse.json(
-      comments.map((c) => ({
-        id: c.id,
-        pathname: c.pathname,
-        startSeconds: c.startSeconds,
-        endSeconds: c.endSeconds,
-        text: c.text,
-        createdAt: c.createdAt.toISOString(),
-        updatedAt: c.updatedAt.toISOString()
-      }))
-    );
+    const commentMap = new Map<number, CommentResponse>();
+    const rootComments: CommentResponse[] = [];
+
+    for (const comment of comments) {
+      commentMap.set(comment.id, toCommentResponse(comment));
+    }
+
+    for (const comment of comments) {
+      const formatted = commentMap.get(comment.id)!;
+      if (comment.parentId && commentMap.has(comment.parentId)) {
+        commentMap.get(comment.parentId)!.replies.push(formatted);
+      } else {
+        rootComments.push(formatted);
+      }
+    }
+
+    return NextResponse.json(rootComments);
   } catch (error) {
     console.error("Error fetching blob comments", error);
     return NextResponse.json(
@@ -50,11 +94,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { pathname, startSeconds, endSeconds, text } = body as {
+  const { pathname, startSeconds, endSeconds, text, parentId } = body as {
     pathname?: string;
     startSeconds?: number;
     endSeconds?: number;
     text?: string;
+    parentId?: number | null;
   };
 
   if (!pathname || typeof pathname !== "string") {
@@ -68,25 +113,6 @@ export async function POST(request: Request) {
   if (!trimmedPathname) {
     return NextResponse.json(
       { error: "pathname cannot be empty" },
-      { status: 400 }
-    );
-  }
-
-  if (
-    typeof startSeconds !== "number" ||
-    typeof endSeconds !== "number" ||
-    !Number.isFinite(startSeconds) ||
-    !Number.isFinite(endSeconds)
-  ) {
-    return NextResponse.json(
-      { error: "startSeconds and endSeconds must be numbers" },
-      { status: 400 }
-    );
-  }
-
-  if (!(startSeconds >= 0 && startSeconds < endSeconds)) {
-    return NextResponse.json(
-      { error: "Invalid time range" },
       { status: 400 }
     );
   }
@@ -110,27 +136,75 @@ export async function POST(request: Request) {
       );
     }
 
+    let finalStartSeconds: number;
+    let finalEndSeconds: number;
+    let validatedParentId: number | null = null;
+
+    if (parentId !== undefined && parentId !== null) {
+      const parsedParentId = Number(parentId);
+      if (!Number.isFinite(parsedParentId) || parsedParentId <= 0) {
+        return NextResponse.json(
+          { error: "parentId must be a positive number" },
+          { status: 400 }
+        );
+      }
+
+      const parentComment = await prisma.comment_blob.findUnique({
+        where: { id: parsedParentId }
+      });
+
+      if (!parentComment || parentComment.pathname !== trimmedPathname) {
+        return NextResponse.json(
+          { error: "Parent comment not found" },
+          { status: 404 }
+        );
+      }
+
+      if (parentComment.parentId) {
+        return NextResponse.json(
+          { error: "Replies cannot be nested" },
+          { status: 400 }
+        );
+      }
+
+      validatedParentId = parentComment.id;
+      finalStartSeconds = parentComment.startSeconds;
+      finalEndSeconds = parentComment.endSeconds;
+    } else {
+      if (
+        typeof startSeconds !== "number" ||
+        typeof endSeconds !== "number" ||
+        !Number.isFinite(startSeconds) ||
+        !Number.isFinite(endSeconds)
+      ) {
+        return NextResponse.json(
+          { error: "startSeconds and endSeconds must be numbers" },
+          { status: 400 }
+        );
+      }
+
+      if (!(startSeconds >= 0 && startSeconds < endSeconds)) {
+        return NextResponse.json(
+          { error: "Invalid time range" },
+          { status: 400 }
+        );
+      }
+
+      finalStartSeconds = startSeconds;
+      finalEndSeconds = endSeconds;
+    }
+
     const comment = await prisma.comment_blob.create({
       data: {
         pathname: trimmedPathname,
-        startSeconds,
-        endSeconds,
-        text: trimmed
+        startSeconds: finalStartSeconds,
+        endSeconds: finalEndSeconds,
+        text: trimmed,
+        parentId: validatedParentId
       }
     });
 
-    return NextResponse.json(
-      {
-        id: comment.id,
-        pathname: comment.pathname,
-        startSeconds: comment.startSeconds,
-        endSeconds: comment.endSeconds,
-        text: comment.text,
-        createdAt: comment.createdAt.toISOString(),
-        updatedAt: comment.updatedAt.toISOString()
-      },
-      { status: 201 }
-    );
+    return NextResponse.json(toCommentResponse(comment), { status: 201 });
   } catch (error) {
     console.error("Error creating blob comment", error);
     return NextResponse.json(

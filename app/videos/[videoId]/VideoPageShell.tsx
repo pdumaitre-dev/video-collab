@@ -11,7 +11,9 @@ export type CommentData = {
   startSeconds: number;
   endSeconds: number;
   text: string;
+  parentId?: number | null;
   createdAt: string;
+  replies?: CommentData[];
 };
 
 export interface VideoForClient {
@@ -24,7 +26,8 @@ export interface VideoForClient {
 
 export type PersistCommentFn = (
   range: { startSeconds: number; endSeconds: number },
-  text: string
+  text: string,
+  parentId?: number | null
 ) => Promise<CommentData>;
 
 export type DeleteCommentFn = (commentId: number) => Promise<void>;
@@ -122,14 +125,32 @@ export default function VideoPageShell({
       text
     );
     setComments((prev) =>
-      [...prev, created].sort((a, b) => a.startSeconds - b.startSeconds)
+      [...prev, { ...created, replies: created.replies ?? [] }].sort(
+        (a, b) => a.startSeconds - b.startSeconds
+      )
     );
     setSelectedRange(null);
   };
 
+  const handleReply = async (parentId: number, text: string) => {
+    const parent = findComment(comments, parentId);
+    if (!parent) return;
+
+    const created = await persistComment(
+      {
+        startSeconds: parent.startSeconds,
+        endSeconds: parent.endSeconds
+      },
+      text,
+      parentId
+    );
+
+    setComments((prev) => addReplyToTree(prev, parentId, created));
+  };
+
   const handleDeleteComment = async (commentId: number) => {
     await deleteComment(commentId);
-    setComments((prev) => prev.filter((c) => c.id !== commentId));
+    setComments((prev) => removeCommentFromTree(prev, commentId));
     if (selectedCommentId === commentId) {
       setSelectedCommentId(null);
     }
@@ -137,7 +158,7 @@ export default function VideoPageShell({
 
   const handleSelectComment = (commentId: number) => {
     setSelectedCommentId(commentId);
-    const comment = comments.find((c) => c.id === commentId);
+    const comment = findComment(comments, commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
     }
@@ -229,8 +250,59 @@ export default function VideoPageShell({
           selectedCommentId={selectedCommentId}
           onSelect={handleSelectComment}
           onDelete={handleDeleteComment}
+          onReply={handleReply}
         />
       </div>
     </div>
   );
+}
+
+function findComment(comments: CommentData[], id: number): CommentData | null {
+  for (const comment of comments) {
+    if (comment.id === id) return comment;
+    if (comment.replies && comment.replies.length > 0) {
+      const found = findComment(comment.replies, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function addReplyToTree(
+  comments: CommentData[],
+  parentId: number,
+  reply: CommentData
+): CommentData[] {
+  return comments.map((comment) => {
+    if (comment.id === parentId) {
+      return {
+        ...comment,
+        replies: [...(comment.replies ?? []), reply]
+      };
+    }
+    if (comment.replies && comment.replies.length > 0) {
+      return {
+        ...comment,
+        replies: addReplyToTree(comment.replies, parentId, reply)
+      };
+    }
+    return comment;
+  });
+}
+
+function removeCommentFromTree(
+  comments: CommentData[],
+  commentId: number
+): CommentData[] {
+  return comments
+    .filter((comment) => comment.id !== commentId)
+    .map((comment) => {
+      if (comment.replies && comment.replies.length > 0) {
+        return {
+          ...comment,
+          replies: removeCommentFromTree(comment.replies, commentId)
+        };
+      }
+      return comment;
+    });
 }

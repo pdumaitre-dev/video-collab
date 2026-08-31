@@ -34,6 +34,7 @@ with open('.env','w') as f:
 - **Dev server:** `npm run dev` (port 3000)
 - **Lint:** `npm run lint`
 - **Typecheck:** `npm run typecheck`
+- **Test:** `npm test` (blob comments route)
 - **Build:** `npm run build`
 - **Prisma client:** `npm run prisma:generate` (also runs on `npm install` via `postinstall`)
 - **Migrations (local / CI with wire access):** `npx prisma migrate deploy`
@@ -74,7 +75,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR to `next`. Three par
 
 - **lint** — `npm ci` + `npm run lint`
 - **typecheck** — `npm ci` + `npm run typecheck` (no `DATABASE_URL` needed)
-- **test** — stub job that always passes (no real test suite on this branch)
+- **test** — `npm ci` + `npm test` (blob comments route; no `DATABASE_URL` needed)
 
 No CD, no `next build`, no migrations, no secrets in CI.
 

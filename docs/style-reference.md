@@ -116,6 +116,7 @@ surface-page (deepest)
 - Delete button: trash icon, shown on hover; red hover state, loading spinner while deleting.
 - Selected: `border-accent`, `bg-accent-muted`, `ring-1 ring-accent/30`.
 - Metadata (time range, created): `font-mono`, `text-fg-muted`, `text-[11px]`.
+- Threads: top-level cards only. Expand/collapse (`Show N replies`) reveals indented replies on `bg-surface-panel`. Reply composer is inline on the parent card; replies inherit the parent's range and do not add timeline markers.
 
 ## Depth and Feel (Without Images)
 

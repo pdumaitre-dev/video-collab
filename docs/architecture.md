@@ -33,7 +33,8 @@ flowchart LR
 - `components/VideoPlayer.tsx`: wraps `<video>` and handles the private-blob preload workaround.
 - `components/TimeBar.tsx`: combined timeline UI (ruler + time bar), seek cursor, and drag range selection.
 - `app/api/blob/upload/route.ts`: Blob upload plus `Video` record creation.
-- `app/api/blob/comments/route.ts`: pathname-keyed comment read/write/delete API.
+- `app/api/blob/comments/route.ts`: pathname-keyed comment read/write/delete API. `GET` returns a nested tree (`replies`) sorted by time then `createdAt`. `POST` accepts optional `parentId` (top-level parents only).
+- `app/api/blob/comments/route.test.ts`: mocked route tests (`npm test`).
 - `app/api/blob/stream/route.ts`: playback proxy for private Blob mode.
 - `lib/blob.ts`: Blob listing, metadata, and playback URL helpers.
 - `lib/db.ts`: Prisma singleton with Neon HTTP adapter.
@@ -44,9 +45,9 @@ flowchart LR
 Current runtime tables in `prisma/schema.prisma`:
 
 - `Video`: display name, `publicId`, Blob `pathname`, Blob `sourceUrl`, and optional metadata.
-- `Comment_blob`: comment ranges keyed by Blob pathname.
+- `Comment_blob`: comment ranges keyed by Blob pathname. Optional `parentId` self-relation (`onDelete: Cascade`) for one-level reply threads. Replies inherit the parent's `startSeconds` / `endSeconds`.
 
-Current UI behavior uses `Video` and `Comment_blob`. The older `Comment` model is still present in the schema, but the active Blob-backed flow does not read from it.
+Current UI behavior uses `Video` and `Comment_blob`. The older `Comment` model is still present in the schema, but the active Blob-backed flow does not read from it. The time bar draws one green range per top-level comment; replies do not add extra markers.
 
 ## Playback Notes
 
@@ -57,7 +58,7 @@ Current UI behavior uses `Video` and `Comment_blob`. The older `Comment` model i
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) on push/PR to `next`: **lint**, **typecheck**, and a **test** stub (always green; no real unit tests). No deploy step, no `next build`, no Prisma migrate in CI.
+GitHub Actions (`.github/workflows/ci.yml`) on push/PR to `next`: **lint**, **typecheck**, and **test** (`npm test` — blob comments route). No deploy step, no `next build`, no Prisma migrate in CI.
 
 ## Legacy Paths To Review
 
