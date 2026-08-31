@@ -4,6 +4,17 @@ import { getBlobStream } from "@/lib/blob";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const pathname = searchParams.get("pathname");
+  const proxyUrl = searchParams.get("url");
+
+  if (proxyUrl) {
+    const upstream = await fetch(proxyUrl);
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers: {
+        "Content-Type": upstream.headers.get("content-type") ?? "application/octet-stream"
+      }
+    });
+  }
 
   if (!pathname) {
     return NextResponse.json(
