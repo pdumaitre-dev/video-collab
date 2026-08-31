@@ -49,7 +49,7 @@ Run this sequence when opening the repo in a cloud agent (secrets already inject
 3. **Env** — confirm `DATABASE_URL` (Neon, not `localhost`) and `BLOB_READ_WRITE_TOKEN` are set.
 4. **Migrations** — do **not** rely on `prisma migrate deploy` in cloud; the shared Neon DB should already have migrations applied. Run migrations only from local/CI with wire access if you own a fresh database.
 5. **Dev server** — `npm run dev` → http://localhost:3000
-6. **Network** — `.cursor/sandbox.json` must allow Neon and Vercel Blob hosts (see below). If outbound calls fail, widen `networkPolicy.allow` before debugging app code.
+6. **Network** — `.cursor/sandbox.json` must allow Neon (`*.neon.tech`, `*.aws.neon.tech`) and Vercel Blob hosts (see below). If outbound calls fail, widen `networkPolicy.allow` before debugging app code.
 7. **Smoke test** — optional; see `.cursor/skills/core-e2e-smoke-test/SKILL.md` and **Smoke test data** below.
 
 ## Cursor Cloud / restricted environments
