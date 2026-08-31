@@ -33,14 +33,18 @@ model Comment {
 }
 
 model Comment_blob {
-  id           Int      @id @default(autoincrement())
-  pathname     String   // Blob pathname, e.g. "videos/sample.mp4"
+  id           Int            @id @default(autoincrement())
+  pathname     String         // Blob pathname, e.g. "videos/sample.mp4"
   startSeconds Float
   endSeconds   Float
   text         String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  parentId     Int?
+  parent       Comment_blob?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      Comment_blob[] @relation("CommentReplies")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   @@index([pathname])
+  @@index([parentId])
 }
 
