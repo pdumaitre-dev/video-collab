@@ -6,6 +6,8 @@
       "*.mock-jira.test",
       "mock-jira.test",
       "*.neon.tech",
+      "*.aws.neon.tech",
+      "api.neon.tech",
       "blob.vercel-storage.com",
       "*.blob.vercel-storage.com",
       "*.public.blob.vercel-storage.com",

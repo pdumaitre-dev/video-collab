@@ -57,7 +57,7 @@ Run this sequence when opening the repo in a cloud agent (secrets already inject
 - **Neon HTTP adapter.** Port 5432 can be blocked; runtime DB uses `@prisma/adapter-neon` in `lib/db.ts` (HTTPS/WebSocket).
 - **`prisma migrate deploy` may fail in cloud.** Use Neon dashboard or a local machine; shared project DB is already migrated.
 - **Blob is required for main flows.** Listing, upload, and playback use Vercel Blob. Empty env → empty video list (errors swallowed on `/`).
-- **Sandbox network.** `.cursor/sandbox.json` defaults to `deny` with an allowlist for Neon (`*.neon.tech`), Vercel Blob (`blob.vercel-storage.com`, `*.blob.vercel-storage.com`), and `registry.npmjs.org`. Add hosts here if install or runtime still cannot reach external services.
+- **Sandbox network.** `.cursor/sandbox.json` defaults to `deny` with an allowlist for Neon (`*.neon.tech`, `*.aws.neon.tech`, `api.neon.tech`), Vercel Blob (`blob.vercel-storage.com`, `*.blob.vercel-storage.com`), and `registry.npmjs.org`. Add hosts here if install or runtime still cannot reach external services.
 
 ## Smoke test data
 
