@@ -112,6 +112,10 @@ export default function TimeBar({
         setSelection({ dragStartSeconds: rangeStartSeconds, dragEndSeconds: rangeEndSeconds });
       } else {
         setSelection(null);
+        // mousedown preventDefault suppresses the click event; treat a short
+        // press as a timeline click so the parent can clear the loop target.
+        suppressClickRef.current = true;
+        onSeek(dragEndSeconds, "click");
       }
     };
 
