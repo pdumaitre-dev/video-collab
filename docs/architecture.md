@@ -57,7 +57,7 @@ Current UI behavior uses `Video` and `Comment_blob`. The older `Comment` model i
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) on push/PR to `next`: **lint**, **typecheck**, and a **test** stub (always green; no real unit tests). No deploy step, no `next build`, no Prisma migrate in CI.
+GitHub Actions (`.github/workflows/ci.yml`) on push/PR to `next`: **lint**, **typecheck**, and **test** (`npm test` / Vitest). Blob comment route contracts live in `app/api/blob/comments/route.test.ts`. No deploy step, no `next build`, no Prisma migrate in CI.
 
 ## Legacy Paths To Review
 
