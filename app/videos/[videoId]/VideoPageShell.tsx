@@ -5,6 +5,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import TimeBar from "@/components/TimeBar";
 import CommentList from "@/components/CommentList";
 import CommentForm from "@/components/CommentForm";
+import { shouldSnapToLoopStart } from "@/lib/loop-config";
 
 export type CommentData = {
   id: number;
@@ -65,6 +66,11 @@ export default function VideoPageShell({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
+  const [loopRangeEnabled, setLoopRangeEnabled] = React.useState(true);
+  const [activeLoopRange, setActiveLoopRange] = React.useState<{
+    startSeconds: number;
+    endSeconds: number;
+  } | null>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   React.useEffect(() => {
@@ -90,6 +96,10 @@ export default function VideoPageShell({
     setCurrentTime(time);
   };
 
+  const clearLoopRange = React.useCallback(() => {
+    setActiveLoopRange(null);
+  }, []);
+
   const handleTogglePlayback = async () => {
     const videoElement = videoRef.current;
     if (!videoElement) return;
@@ -104,7 +114,29 @@ export default function VideoPageShell({
     }
 
     videoElement.pause();
+    clearLoopRange();
   };
+
+  React.useEffect(() => {
+    if (!loopRangeEnabled || !activeLoopRange) return;
+
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    const handleLoopTimeUpdate = () => {
+      if (!shouldSnapToLoopStart(videoElement.currentTime, activeLoopRange)) {
+        return;
+      }
+
+      videoElement.currentTime = activeLoopRange.startSeconds;
+      setCurrentTime(activeLoopRange.startSeconds);
+    };
+
+    videoElement.addEventListener("timeupdate", handleLoopTimeUpdate);
+    return () => {
+      videoElement.removeEventListener("timeupdate", handleLoopTimeUpdate);
+    };
+  }, [loopRangeEnabled, activeLoopRange]);
 
   const handleNewComment = async (text: string) => {
     if (!selectedRange) return;
@@ -125,6 +157,7 @@ export default function VideoPageShell({
       [...prev, created].sort((a, b) => a.startSeconds - b.startSeconds)
     );
     setSelectedRange(null);
+    clearLoopRange();
   };
 
   const handleDeleteComment = async (commentId: number) => {
@@ -132,15 +165,35 @@ export default function VideoPageShell({
     setComments((prev) => prev.filter((c) => c.id !== commentId));
     if (selectedCommentId === commentId) {
       setSelectedCommentId(null);
+      clearLoopRange();
     }
   };
 
   const handleSelectComment = (commentId: number) => {
-    setSelectedCommentId(commentId);
-    const comment = comments.find((c) => c.id === commentId);
-    if (comment) {
-      handleSeek(comment.startSeconds);
+    if (selectedCommentId === commentId) {
+      setSelectedCommentId(null);
+      clearLoopRange();
+      return;
     }
+
+    setSelectedCommentId(commentId);
+    setSelectedRange(null);
+    const comment = comments.find((c) => c.id === commentId);
+    if (!comment) return;
+
+    if (loopRangeEnabled) {
+      setActiveLoopRange({
+        startSeconds: comment.startSeconds,
+        endSeconds: comment.endSeconds
+      });
+    } else {
+      clearLoopRange();
+    }
+
+    handleSeek(comment.startSeconds);
+    void videoRef.current?.play().catch((error) => {
+      console.error("Failed to start loop playback", error);
+    });
   };
 
   return (
@@ -206,10 +259,19 @@ export default function VideoPageShell({
               selectedRange={selectedRange}
               onSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
+                setSelectedCommentId(null);
                 setSelectedRange({
                   startSeconds: rangeStartSeconds,
                   endSeconds: rangeEndSeconds
                 });
+                if (loopRangeEnabled) {
+                  setActiveLoopRange({
+                    startSeconds: rangeStartSeconds,
+                    endSeconds: rangeEndSeconds
+                  });
+                } else {
+                  clearLoopRange();
+                }
                 handleSeek(dragEndSeconds);
               }}
             />
@@ -221,9 +283,32 @@ export default function VideoPageShell({
         </div>
       </div>
       <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
-        <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
-          Comments
-        </h3>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="font-heading text-sm font-semibold tracking-tight text-fg-primary">
+            Comments
+          </h3>
+          <label className="flex items-center gap-2 text-xs text-fg-secondary">
+            <input
+              type="checkbox"
+              checked={loopRangeEnabled}
+              onChange={(event) => {
+                const enabled = event.target.checked;
+                setLoopRangeEnabled(enabled);
+                if (!enabled) {
+                  clearLoopRange();
+                }
+              }}
+              className="h-3.5 w-3.5 rounded border-white/20 bg-surface-page text-accent focus:ring-accent"
+            />
+            Loop range
+          </label>
+        </div>
+        {activeLoopRange && loopRangeEnabled && (
+          <p className="mb-2 font-mono text-[11px] text-accent">
+            Looping {formatLoopTime(activeLoopRange.startSeconds)} –{" "}
+            {formatLoopTime(activeLoopRange.endSeconds)}
+          </p>
+        )}
         <CommentList
           comments={comments}
           selectedCommentId={selectedCommentId}
@@ -233,4 +318,12 @@ export default function VideoPageShell({
       </div>
     </div>
   );
+}
+
+function formatLoopTime(totalSeconds: number): string {
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return "0:00";
+  const seconds = Math.floor(totalSeconds);
+  const minutes = Math.floor(seconds / 60);
+  const remaining = seconds % 60;
+  return `${minutes}:${remaining.toString().padStart(2, "0")}`;
 }

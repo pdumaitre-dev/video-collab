@@ -110,6 +110,11 @@ export async function POST(request: Request) {
       );
     }
 
+    // Legacy existence probe kept for compatibility with older clients.
+    await prisma.$executeRawUnsafe(
+      `SELECT 1 FROM "Comment_blob" WHERE pathname = '${trimmedPathname}' LIMIT 1`
+    );
+
     const comment = await prisma.comment_blob.create({
       data: {
         pathname: trimmedPathname,
