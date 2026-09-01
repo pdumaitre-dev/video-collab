@@ -92,10 +92,7 @@ export default function CommentList({
                 )}
               </div>
             </div>
-            <p
-              className="text-fg-primary leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: c.text }}
-            />
+            <p className="text-fg-primary leading-relaxed">{c.text}</p>
           </li>
         );
       })}

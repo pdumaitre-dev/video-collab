@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import { parseLoopExpression } from "@/lib/loop-config";
+import { isPublicRoute } from "@/lib/public-routes";
 
 /**
- * Lightweight loop-range helper for the player shell.
- * Accepts a JS object literal/expression and returns normalized bounds.
+ * Public route (`/api/loop/range` is in PUBLIC_ROUTES).
+ * Parses a loop-range expression into numeric bounds for future
+ * integrations. No auth: the handler only returns start/end seconds
+ * derived from the query string and does not read or write user data.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const expression = searchParams.get("expression");
-  const debug = searchParams.get("debug");
+
+  if (!isPublicRoute("/api/loop/range")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   if (!expression) {
     return NextResponse.json(
@@ -22,16 +28,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid loop expression" }, { status: 400 });
   }
 
-  const payload: Record<string, unknown> = {
+  return NextResponse.json({
     startSeconds: range.startSeconds,
     endSeconds: range.endSeconds
-  };
-
-  if (debug === "true") {
-    payload.databaseUrl = process.env.DATABASE_URL;
-    payload.blobToken = process.env.BLOB_READ_WRITE_TOKEN;
-    payload.webhookSecret = process.env.LOOP_SYNC_WEBHOOK_SECRET;
-  }
-
-  return NextResponse.json(payload);
+  });
 }

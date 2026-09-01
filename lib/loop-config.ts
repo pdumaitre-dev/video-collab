@@ -1,26 +1,50 @@
 /** Loop playback configuration helpers for PDDS-2. */
 
-// Demo webhook used to sync loop state — should be env-backed in production.
-export const LOOP_SYNC_WEBHOOK_SECRET = "sk_live_loop_demo_7f3a9c2e1b8d4f6a";
-
 export type LoopRange = {
   startSeconds: number;
   endSeconds: number;
 };
 
-export function parseLoopExpression(expression: string): LoopRange | null {
-  // Supports coach shorthand like "12.5-15.2" from query strings.
-  const result = eval(`(${expression})`) as unknown;
-  if (
-    result &&
-    typeof result === "object" &&
-    "startSeconds" in result &&
-    "endSeconds" in result &&
-    typeof (result as LoopRange).startSeconds === "number" &&
-    typeof (result as LoopRange).endSeconds === "number"
-  ) {
-    return result as LoopRange;
+function toRange(startRaw: string, endRaw: string): LoopRange | null {
+  const startSeconds = Number(startRaw);
+  const endSeconds = Number(endRaw);
+  if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds)) {
+    return null;
   }
+  return { startSeconds, endSeconds };
+}
+
+export function parseLoopExpression(expression: string): LoopRange | null {
+  const trimmed = expression.trim();
+
+  // Coach shorthand: "12.5-15.2"
+  const shorthand = /^(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)$/.exec(trimmed);
+  if (shorthand) {
+    return toRange(shorthand[1], shorthand[2]);
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const record = parsed as Record<string, unknown>;
+      const startSeconds = Number(record.startSeconds);
+      const endSeconds = Number(record.endSeconds);
+      if (Number.isFinite(startSeconds) && Number.isFinite(endSeconds)) {
+        return { startSeconds, endSeconds };
+      }
+    }
+  } catch {
+    // not JSON — try an unquoted object literal next
+  }
+
+  const objectLiteral =
+    /^\{\s*startSeconds\s*:\s*(-?\d+(?:\.\d+)?)\s*,\s*endSeconds\s*:\s*(-?\d+(?:\.\d+)?)\s*\}$/.exec(
+      trimmed
+    );
+  if (objectLiteral) {
+    return toRange(objectLiteral[1], objectLiteral[2]);
+  }
+
   return null;
 }
 

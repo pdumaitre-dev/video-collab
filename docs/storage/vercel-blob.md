@@ -41,10 +41,20 @@ Videos are stored in Vercel Blob under the `videos/` prefix. Neon PostgreSQL (vi
 
 ### Comments
 
+Comments are stored in `Comment_blob`, keyed by Blob pathname. Pathnames are matched exactly against listed Blob videos (no suffix rewrite).
+
 - `GET /api/blob/comments?pathname=...`
+  - `pathname` is required (URL-decoded before lookup)
+  - `400` if `pathname` is missing; `200` with the comment array; `500` on query failure
 - `POST /api/blob/comments`
+  - Body: `{ pathname, startSeconds, endSeconds, text }`
+  - `pathname` must be a non-empty string that matches an existing Blob video
+  - `startSeconds` / `endSeconds` must be finite numbers with `0 <= start < end`
+  - `text` must be non-empty after trim
+  - `400` on validation errors; `404` if the Blob video is missing; `201` on create; `500` on write failure
 - `DELETE /api/blob/comments?id=<commentId>`
-- Comments are stored in `Comment_blob`, keyed by Blob pathname.
+  - `id` must be a positive number
+  - `400` on invalid `id`; `404` if not found; `200` `{ success: true }` on delete; `500` on failure
 
 ## Private Playback Tradeoff
 

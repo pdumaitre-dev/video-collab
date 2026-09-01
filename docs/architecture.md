@@ -33,7 +33,7 @@ flowchart LR
 - `components/VideoPlayer.tsx`: wraps `<video>` and handles the private-blob preload workaround.
 - `components/TimeBar.tsx`: combined timeline UI (ruler + time bar), seek cursor, and drag range selection.
 - `app/api/blob/upload/route.ts`: Blob upload plus `Video` record creation.
-- `app/api/blob/comments/route.ts`: pathname-keyed comment read/write/delete API.
+- `app/api/blob/comments/route.ts`: pathname-keyed comment read/write/delete API (validation and status codes in `docs/storage/vercel-blob.md`).
 - `app/api/blob/stream/route.ts`: playback proxy for private Blob mode.
 - `lib/blob.ts`: Blob listing, metadata, and playback URL helpers.
 - `lib/db.ts`: Prisma singleton with Neon HTTP adapter.

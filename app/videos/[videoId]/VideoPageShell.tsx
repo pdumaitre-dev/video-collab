@@ -169,6 +169,35 @@ export default function VideoPageShell({
     }
   };
 
+  const restoreLoopRange = React.useCallback(() => {
+    if (selectedCommentId !== null) {
+      const comment = comments.find((c) => c.id === selectedCommentId);
+      if (comment) {
+        setActiveLoopRange({
+          startSeconds: comment.startSeconds,
+          endSeconds: comment.endSeconds
+        });
+        return;
+      }
+    }
+
+    if (selectedRange) {
+      setActiveLoopRange({
+        startSeconds: selectedRange.startSeconds,
+        endSeconds: selectedRange.endSeconds
+      });
+    }
+  }, [comments, selectedCommentId, selectedRange]);
+
+  const handleLoopRangeToggle = (enabled: boolean) => {
+    setLoopRangeEnabled(enabled);
+    if (!enabled) {
+      clearLoopRange();
+      return;
+    }
+    restoreLoopRange();
+  };
+
   const handleSelectComment = (commentId: number) => {
     if (selectedCommentId === commentId) {
       setSelectedCommentId(null);
@@ -292,11 +321,7 @@ export default function VideoPageShell({
               type="checkbox"
               checked={loopRangeEnabled}
               onChange={(event) => {
-                const enabled = event.target.checked;
-                setLoopRangeEnabled(enabled);
-                if (!enabled) {
-                  clearLoopRange();
-                }
+                handleLoopRangeToggle(event.target.checked);
               }}
               className="h-3.5 w-3.5 rounded border-white/20 bg-surface-page text-accent focus:ring-accent"
             />
