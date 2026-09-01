@@ -2,6 +2,83 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { listVideoBlobs } from "@/lib/blob";
 
+type CommentRow = {
+  id: number;
+  pathname: string;
+  startSeconds: number;
+  endSeconds: number;
+  text: string;
+  parentId: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type CommentNode = {
+  id: number;
+  pathname: string;
+  startSeconds: number;
+  endSeconds: number;
+  text: string;
+  parentId: number | null;
+  createdAt: string;
+  updatedAt: string;
+  replies: CommentNode[];
+};
+
+function serializeComment(comment: CommentRow): Omit<CommentNode, "replies"> {
+  return {
+    id: comment.id,
+    pathname: comment.pathname,
+    startSeconds: comment.startSeconds,
+    endSeconds: comment.endSeconds,
+    text: comment.text,
+    parentId: comment.parentId,
+    createdAt: comment.createdAt.toISOString(),
+    updatedAt: comment.updatedAt.toISOString()
+  };
+}
+
+function buildCommentTree(comments: CommentRow[]): CommentNode[] {
+  const nodes = new Map<number, CommentNode>();
+
+  for (const comment of comments) {
+    nodes.set(comment.id, { ...serializeComment(comment), replies: [] });
+  }
+
+  const roots: CommentNode[] = [];
+
+  for (const comment of comments) {
+    const node = nodes.get(comment.id);
+    if (!node) continue;
+
+    if (comment.parentId) {
+      const parent = nodes.get(comment.parentId);
+      if (parent) {
+        parent.replies.push(node);
+      }
+      continue;
+    }
+
+    roots.push(node);
+  }
+
+  const sortByCreatedAt = (a: CommentNode, b: CommentNode) =>
+    a.createdAt.localeCompare(b.createdAt);
+
+  roots.sort((a, b) => {
+    if (a.startSeconds !== b.startSeconds) {
+      return a.startSeconds - b.startSeconds;
+    }
+    return sortByCreatedAt(a, b);
+  });
+
+  for (const root of roots) {
+    root.replies.sort(sortByCreatedAt);
+  }
+
+  return roots;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const pathname = searchParams.get("pathname");
@@ -21,17 +98,7 @@ export async function GET(request: Request) {
       orderBy: [{ startSeconds: "asc" }, { createdAt: "asc" }]
     });
 
-    return NextResponse.json(
-      comments.map((c) => ({
-        id: c.id,
-        pathname: c.pathname,
-        startSeconds: c.startSeconds,
-        endSeconds: c.endSeconds,
-        text: c.text,
-        createdAt: c.createdAt.toISOString(),
-        updatedAt: c.updatedAt.toISOString()
-      }))
-    );
+    return NextResponse.json(buildCommentTree(comments));
   } catch (error) {
     console.error("Error fetching blob comments", error);
     return NextResponse.json(
@@ -50,11 +117,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { pathname, startSeconds, endSeconds, text } = body as {
+  const { pathname, startSeconds, endSeconds, text, parentId } = body as {
     pathname?: string;
     startSeconds?: number;
     endSeconds?: number;
     text?: string;
+    parentId?: number;
   };
 
   if (!pathname || typeof pathname !== "string") {
@@ -72,31 +140,73 @@ export async function POST(request: Request) {
     );
   }
 
-  if (
-    typeof startSeconds !== "number" ||
-    typeof endSeconds !== "number" ||
-    !Number.isFinite(startSeconds) ||
-    !Number.isFinite(endSeconds)
-  ) {
-    return NextResponse.json(
-      { error: "startSeconds and endSeconds must be numbers" },
-      { status: 400 }
-    );
-  }
-
-  if (!(startSeconds >= 0 && startSeconds < endSeconds)) {
-    return NextResponse.json(
-      { error: "Invalid time range" },
-      { status: 400 }
-    );
-  }
-
   const trimmed = (text ?? "").trim();
   if (!trimmed) {
     return NextResponse.json(
       { error: "Comment text is required" },
       { status: 400 }
     );
+  }
+
+  let resolvedStartSeconds = startSeconds;
+  let resolvedEndSeconds = endSeconds;
+  let resolvedParentId: number | null = null;
+
+  if (parentId !== undefined && parentId !== null) {
+    if (!Number.isFinite(parentId) || parentId <= 0) {
+      return NextResponse.json(
+        { error: "parentId must be a positive number" },
+        { status: 400 }
+      );
+    }
+
+    const parent = await prisma.comment_blob.findUnique({
+      where: { id: parentId }
+    });
+
+    if (!parent) {
+      return NextResponse.json(
+        { error: "Parent comment not found" },
+        { status: 404 }
+      );
+    }
+
+    if (parent.pathname !== trimmedPathname) {
+      return NextResponse.json(
+        { error: "Parent comment belongs to a different video" },
+        { status: 400 }
+      );
+    }
+
+    if (parent.parentId !== null) {
+      return NextResponse.json(
+        { error: "Replies can only be added to top-level comments" },
+        { status: 400 }
+      );
+    }
+
+    resolvedParentId = parentId;
+    resolvedStartSeconds = parent.startSeconds;
+    resolvedEndSeconds = parent.endSeconds;
+  } else {
+    if (
+      typeof startSeconds !== "number" ||
+      typeof endSeconds !== "number" ||
+      !Number.isFinite(startSeconds) ||
+      !Number.isFinite(endSeconds)
+    ) {
+      return NextResponse.json(
+        { error: "startSeconds and endSeconds must be numbers" },
+        { status: 400 }
+      );
+    }
+
+    if (!(startSeconds >= 0 && startSeconds < endSeconds)) {
+      return NextResponse.json(
+        { error: "Invalid time range" },
+        { status: 400 }
+      );
+    }
   }
 
   try {
@@ -113,24 +223,14 @@ export async function POST(request: Request) {
     const comment = await prisma.comment_blob.create({
       data: {
         pathname: trimmedPathname,
-        startSeconds,
-        endSeconds,
-        text: trimmed
+        startSeconds: resolvedStartSeconds!,
+        endSeconds: resolvedEndSeconds!,
+        text: trimmed,
+        parentId: resolvedParentId
       }
     });
 
-    return NextResponse.json(
-      {
-        id: comment.id,
-        pathname: comment.pathname,
-        startSeconds: comment.startSeconds,
-        endSeconds: comment.endSeconds,
-        text: comment.text,
-        createdAt: comment.createdAt.toISOString(),
-        updatedAt: comment.updatedAt.toISOString()
-      },
-      { status: 201 }
-    );
+    return NextResponse.json(serializeComment(comment), { status: 201 });
   } catch (error) {
     console.error("Error creating blob comment", error);
     return NextResponse.json(
