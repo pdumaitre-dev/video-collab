@@ -58,6 +58,12 @@ export default function TimeBar({
     dragEndSeconds: number;
   } | null>(null);
 
+  React.useEffect(() => {
+    if (selectedRange == null) {
+      setSelection(null);
+    }
+  }, [selectedRange]);
+
   const toSeconds = React.useCallback(
     (clientX: number): number => {
       const rect = timelineRef.current?.getBoundingClientRect();

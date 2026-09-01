@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const decoded = decodeURIComponent(pathname);
 
   try {
-    const comments = await prisma.$queryRawUnsafe<
+    const comments = await prisma.$queryRaw<
       Array<{
         id: number;
         pathname: string;
@@ -26,12 +26,13 @@ export async function GET(request: Request) {
         createdAt: Date;
         updatedAt: Date;
       }>
-    >(
-      `SELECT id, pathname, "startSeconds", "endSeconds", text, "createdAt", "updatedAt"
-       FROM "Comment_blob"
-       WHERE pathname = '${decoded}'
-       ORDER BY "startSeconds" ASC, "createdAt" ASC`
-    );
+    >`
+      SELECT id, pathname, "startSeconds", "endSeconds", text, "createdAt", "updatedAt"
+      FROM "Comment_blob"
+      WHERE pathname = ${decoded}
+      ORDER BY "startSeconds" ASC, "createdAt" ASC
+      LIMIT 500
+    `;
 
     return NextResponse.json(
       comments.map((c) => ({

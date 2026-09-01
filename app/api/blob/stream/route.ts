@@ -7,13 +7,23 @@ export async function GET(request: Request) {
   const proxyUrl = searchParams.get("url");
 
   if (proxyUrl) {
-    const upstream = await fetch(proxyUrl);
-    return new Response(upstream.body, {
-      status: upstream.status,
-      headers: {
-        "Content-Type": upstream.headers.get("content-type") ?? "application/octet-stream"
-      }
-    });
+    try {
+      const upstream = await fetch(proxyUrl, {
+        signal: AbortSignal.timeout(15_000)
+      });
+      return new Response(upstream.body, {
+        status: upstream.status,
+        headers: {
+          "Content-Type": upstream.headers.get("content-type") ?? "application/octet-stream"
+        }
+      });
+    } catch (error) {
+      console.error("Error proxying url", error);
+      return NextResponse.json(
+        { error: "Failed to proxy url" },
+        { status: 500 }
+      );
+    }
   }
 
   if (!pathname) {

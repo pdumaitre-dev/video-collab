@@ -37,11 +37,12 @@ Videos are stored in Vercel Blob under the `videos/` prefix. Neon PostgreSQL (vi
 
 - Public mode: use the direct Blob URL.
 - Private mode: use `GET /api/blob/stream?pathname=...`.
+- Optional `url` query proxies that upstream URL; the fetch aborts after 15s.
 - `app/videos/[videoId]/page.tsx` resolves either a stored `publicId` or a raw pathname.
 
 ### Comments
 
-- `GET /api/blob/comments?pathname=...`
+- `GET /api/blob/comments?pathname=...` — at most 500 rows, ordered by `startSeconds`, then `createdAt`.
 - `POST /api/blob/comments`
 - `DELETE /api/blob/comments?id=<commentId>`
 - Comments are stored in `Comment_blob`, keyed by Blob pathname.
