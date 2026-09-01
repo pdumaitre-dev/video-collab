@@ -29,3 +29,7 @@ Playback on the video page is controlled by an external play/pause button in `ap
 - `onPlay` => `isPlaying = true`
 - `onPause` => `isPlaying = false`
 - `onEnded` => `isPlaying = false`
+
+## Loop range
+
+Range looping lives in `VideoPageShell` (`timeupdate` wrap). It must not set `isPlaying` itself. Pause still comes from the video element; the loop toggle can stay armed while paused. See `loop-selected-range.md`.
