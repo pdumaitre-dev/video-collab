@@ -65,7 +65,23 @@ export default function VideoPageShell({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     number | null
   >(null);
+  const [loopEnabled, setLoopEnabled] = React.useState(true);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  const activeLoopRange = React.useMemo(() => {
+    if (!loopEnabled) return null;
+    if (selectedRange) return selectedRange;
+    if (selectedCommentId === null) return null;
+    const comment = comments.find((c) => c.id === selectedCommentId);
+    if (!comment) return null;
+    return {
+      startSeconds: comment.startSeconds,
+      endSeconds: comment.endSeconds
+    };
+  }, [loopEnabled, selectedRange, selectedCommentId, comments]);
+
+  const hasLoopTarget =
+    selectedRange !== null || selectedCommentId !== null;
 
   React.useEffect(() => {
     if (duration > 0) return;
@@ -86,6 +102,24 @@ export default function VideoPageShell({
   const handleSeek = (time: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
+    }
+    setCurrentTime(time);
+  };
+
+  const startPlayback = async () => {
+    const videoElement = videoRef.current;
+    if (!videoElement || !videoElement.paused) return;
+    try {
+      await videoElement.play();
+    } catch (error) {
+      console.error("Failed to start playback", error);
+    }
+  };
+
+  const handleTimeUpdate = (time: number) => {
+    if (activeLoopRange && time >= activeLoopRange.endSeconds - 0.05) {
+      handleSeek(activeLoopRange.startSeconds);
+      return;
     }
     setCurrentTime(time);
   };
@@ -136,10 +170,19 @@ export default function VideoPageShell({
   };
 
   const handleSelectComment = (commentId: number) => {
+    if (selectedCommentId === commentId) {
+      setSelectedCommentId(null);
+      setLoopEnabled(false);
+      return;
+    }
+
     setSelectedCommentId(commentId);
+    setSelectedRange(null);
+    setLoopEnabled(true);
     const comment = comments.find((c) => c.id === commentId);
     if (comment) {
       handleSeek(comment.startSeconds);
+      void startPlayback();
     }
   };
 
@@ -158,10 +201,13 @@ export default function VideoPageShell({
           <VideoPlayer
             src={video.sourceUrl}
             videoRef={videoRef}
-            onTimeUpdate={setCurrentTime}
+            onTimeUpdate={handleTimeUpdate}
             onDurationChange={setDuration}
             onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
+            onPause={() => {
+              setIsPlaying(false);
+              setLoopEnabled(false);
+            }}
             onEnded={() => setIsPlaying(false)}
           />
           <div className="flex items-center">
@@ -206,11 +252,14 @@ export default function VideoPageShell({
               selectedRange={selectedRange}
               onSeek={handleSeek}
               onRangeSelected={(rangeStartSeconds, rangeEndSeconds, dragEndSeconds) => {
+                setSelectedCommentId(null);
                 setSelectedRange({
                   startSeconds: rangeStartSeconds,
                   endSeconds: rangeEndSeconds
                 });
+                setLoopEnabled(true);
                 handleSeek(dragEndSeconds);
+                void startPlayback();
               }}
             />
           </div>
@@ -221,9 +270,25 @@ export default function VideoPageShell({
         </div>
       </div>
       <div className="flex h-full flex-col rounded-lg border border-white/[0.08] bg-surface-panel p-4 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)]">
-        <h3 className="mb-3 font-heading text-sm font-semibold tracking-tight text-fg-primary">
-          Comments
-        </h3>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="font-heading text-sm font-semibold tracking-tight text-fg-primary">
+            Comments
+          </h3>
+          <label
+            className={`inline-flex items-center gap-2 text-xs ${
+              hasLoopTarget ? "text-fg-secondary" : "text-fg-disabled"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={loopEnabled && hasLoopTarget}
+              disabled={!hasLoopTarget}
+              onChange={(e) => setLoopEnabled(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-white/[0.2] bg-surface-page text-accent focus:ring-accent focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            Loop range
+          </label>
+        </div>
         <CommentList
           comments={comments}
           selectedCommentId={selectedCommentId}
